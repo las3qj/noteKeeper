@@ -36,11 +36,11 @@ const createCorpusTable = (docs) => {
       const counts = table[token].counts;
       const masterEntry = masterTable[token];
       if (masterEntry === undefined) {
-        masterTable[token] = { counts: counts, byDoc: { [doc.id]: counts } };
+        masterTable[token] = { counts: counts, byDoc: { [doc._id]: counts } };
       } else {
         masterTable[token] = {
           counts: masterEntry.counts + counts,
-          byDoc: { ...masterEntry.byDoc, [doc.id]: counts },
+          byDoc: { ...masterEntry.byDoc, [doc._id]: counts },
         };
       }
     }

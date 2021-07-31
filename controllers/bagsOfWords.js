@@ -3,7 +3,6 @@ const { tokenize } = require("./../services/textWrangling");
 const { createNoteTable } = require("./../services/tabling");
 const { createBagOfWords, getBagsByIDs } = require("./../services/bagsOfWords");
 const { getClient, getDB } = require("./../database/database");
-const { parseObjectIDArray } = require("./../services/misc");
 
 const postBagOfWords = async (req, res) => {
   const client = getClient();
@@ -30,11 +29,9 @@ const getBagsOfWords = async (req, res) => {
     await client.connect();
     const db = getDB(client);
     const ids = req.query.ids;
-    const objectIDArray = parseObjectIDArray(ids);
-    const result = await getBagsByIDs(objectIDArray, db);
-    const resArray = await result.toArray();
+    const result = await getBagsByIDs(ids, db);
     res.status(200);
-    res.json({ data: resArray });
+    res.json({ data: result });
   } catch (e) {
     console.log(e.message);
     res.sendStatus(500);
