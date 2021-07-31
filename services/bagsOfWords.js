@@ -1,4 +1,4 @@
-const { postBagOfWords } = require("./../database/bagsOfWords");
+const { postBagOfWords, getBagsOfWords } = require("./../database/bagsOfWords");
 
 const createBagOfWords = async (textString, tokens, table, db) => {
   const noteDoc = {
@@ -10,4 +10,15 @@ const createBagOfWords = async (textString, tokens, table, db) => {
   return result;
 };
 
-module.exports = { createBagOfWords };
+/**
+ * Returns an array containing the bagsOfWords corresponding to the given objectIDs
+ * @param {Array <ObjectID>} objectIDs - array of objectIDs corresponding to bagsOfWords
+ * @param {MongoDB Database} db - database ref for mongodb
+ * @returns Array containing the results of the query (in the form of bagsOfWords objects)
+ */
+const getBagsByIDs = async (objectIDs, db) => {
+  const result = await getBagsOfWords(objectIDs, db);
+  return result;
+};
+
+module.exports = { createBagOfWords, getBagsByIDs };

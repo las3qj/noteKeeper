@@ -4,4 +4,10 @@ const postBagOfWords = async (bOWDoc, db) => {
   return result;
 };
 
-module.exports = { postBagOfWords };
+const getBagsOfWords = async (objectIDs, db) => {
+  const notes = db.collection("bagsOfWords");
+  const result = await notes.find({ _id: { $in: objectIDs } });
+  return result;
+};
+
+module.exports = { postBagOfWords, getBagsOfWords };
