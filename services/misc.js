@@ -1,4 +1,5 @@
 const ObjectId = require("mongodb").ObjectId;
+const { getClient, getDB } = require("./../database/database");
 
 /**
  * Parses a string hex value into an ObjectID type
@@ -22,7 +23,22 @@ const parseObjectIDArray = (strings) => {
   return objectIDArray;
 };
 
+const controlWrapper = async (res, funct) => {
+  const client = getClient();
+  try {
+    await client.connect();
+    const db = getDB(client);
+    await funct(db);
+  } catch (e) {
+    console.log(e.message);
+    res.sendStatus(500);
+  } finally {
+    await client.close();
+  }
+};
+
 module.exports = {
   parseObjectID,
   parseObjectIDArray,
+  controlWrapper,
 };

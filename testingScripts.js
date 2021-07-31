@@ -64,4 +64,4 @@ const testPCSuite = () => {
   }
 };
 
-testPCSuite();
+testGBOWSuite();
