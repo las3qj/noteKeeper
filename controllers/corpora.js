@@ -3,12 +3,7 @@ const {
   createCorpusTable,
   addToCorpusTable,
 } = require("./../services/tabling");
-const {
-  createCorpus,
-  getCorporaByID,
-  addToCorpusBags,
-  updateCorpus,
-} = require("./../services/corpora");
+const { createCorpus, addBagsByID } = require("./../services/corpora");
 const { controlWrapper } = require("./../services/misc");
 
 const postCorpus = async (req, res) => {
@@ -24,13 +19,7 @@ const postCorpus = async (req, res) => {
 const addBags = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { corpusID, bagIDs } = req.body;
-    const [bagArray, corpus] = await Promise.all([
-      getBagsByIDs(bagIDs, db),
-      getCorporaByID([corpusID], db),
-    ]);
-    const newTable = addToCorpusTable(corpus.table, bagArray);
-    const newBags = addToCorpusBags(corpus.bags, bagArray);
-    await updateCorpus(corpusID, { bags: newBags, table: newTable }, db);
+    await addBagsByID(corpusID, bagIDs);
     res.sendStatus(200);
   });
 };
