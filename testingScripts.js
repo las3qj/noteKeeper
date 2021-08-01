@@ -13,11 +13,19 @@ const testGetBagsOfWords = async (ids) => {
   return response;
 };
 
-const testPostCorpus = async (name, description, ids) => {
+const testPostCorpus = async (name, description, bagIDs) => {
   const response = await axios.post("http://localhost:3000/corpus", {
     name,
     description,
-    bagIDs: ids,
+    bagIDs,
+  });
+  return response;
+};
+
+const testAddBags = async (corpusID, bagIDs) => {
+  const response = await axios.put("http://localhost:3000/corpus/addBags", {
+    corpusID,
+    bagIDs,
   });
   return response;
 };
@@ -64,4 +72,20 @@ const testPCSuite = () => {
   }
 };
 
-testGBOWSuite();
+constABSuite = () => {
+  const testParams = [
+    {
+      corpusID: "6105a5706a26f24cb23c7fc3",
+      bagIDs: ["61058acfa0b2ed02b01a652a", "6105a34ef610e8b0f767e248"],
+    },
+  ];
+  for (test of testParams) {
+    console.log("Testing ..." + test.corpusID);
+    testAddBags(test.corpusID, test.bagIDs).then((response) => {
+      console.log(response);
+    });
+    console.log("End test suite ...");
+  }
+};
+
+testPCSuite();

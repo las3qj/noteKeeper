@@ -1,12 +1,12 @@
 const postBagOfWords = async (bOWDoc, db) => {
-  const notes = db.collection("bagsOfWords");
-  const result = await notes.insertOne(bOWDoc);
+  const bags = db.collection("bagsOfWords");
+  const result = await bags.insertOne(bOWDoc);
   return result;
 };
 
 const getBagsOfWords = async (objectIDs, db) => {
-  const notes = db.collection("bagsOfWords");
-  const result = await notes.find({ _id: { $in: objectIDs } });
+  const bags = db.collection("bagsOfWords");
+  const result = await bags.find({ _id: { $in: objectIDs } });
   return result;
 };
 

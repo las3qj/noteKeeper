@@ -26,11 +26,14 @@ const createNoteTable = (tokens) => {
  * @param {Array <Object>} docs - Array of note doc objects, with table and id fields defined
  * @returns {Object} table - mapping words to cumulative counts and counts by docID
  */
-const createCorpusTable = (docs) => {
-  const masterTable = {};
+const createCorpusTable = (bagsArray) => {
+  return addToCorpusTable({}, bagsArray);
+};
+
+const addToCorpusTable = (masterTable, bagsArray) => {
   // O(w*n) here w = number of words and n = number of notes -- better algorithm?
-  for (var i = 0; i < docs.length; i++) {
-    const doc = docs[i];
+  for (var i = 0; i < bagsArray.length; i++) {
+    const doc = bagsArray[i];
     const table = doc.table;
     for (var token in table) {
       const counts = table[token].counts;
@@ -48,4 +51,4 @@ const createCorpusTable = (docs) => {
   return masterTable;
 };
 
-module.exports = { createNoteTable, createCorpusTable };
+module.exports = { createNoteTable, createCorpusTable, addToCorpusTable };
