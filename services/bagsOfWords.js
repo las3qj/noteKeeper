@@ -1,11 +1,17 @@
-const { postBagOfWords, getBagsOfWords } = require("./../database/bagsOfWords");
-const { parseObjectIDArray } = require("./misc");
+const {
+  postBagOfWords,
+  getBagsOfWords,
+  getBagOfWords,
+  putBagOfWords,
+} = require("./../database/bagsOfWords");
+const { parseObjectIDArray, parseObjectID } = require("./misc");
 
-const createBagOfWords = async (textString, tokens, table, db) => {
+const createBagOfWords = async (textString, tokens, table, corpora, db) => {
   const noteDoc = {
     textString,
     tokens,
     table,
+    corpora,
   };
   const result = await postBagOfWords(noteDoc, db);
   return result;
@@ -17,11 +23,30 @@ const createBagOfWords = async (textString, tokens, table, db) => {
  * @param {MongoDB Database} db - database ref for mongodb
  * @returns Array containing the results of the query (in the form of bagsOfWords objects)
  */
-const getBagsByIDs = async (ids, db) => {
+const getBagsByID = async (ids, db) => {
   const objectIDArray = parseObjectIDArray(ids);
-  const cursor = await getBagsOfWords(objectIDArray, db);
-  const result = await cursor.toArray();
+  let result;
+  if (objectIDArray.length > 1) {
+    const cursor = await getBagsOfWords(objectIDArray, db);
+    result = await cursor.toArray();
+  } else {
+    result = [await getBagOfWords(objectIDArray[0], db)];
+  }
   return result;
 };
 
-module.exports = { createBagOfWords, getBagsByIDs };
+const addToBagCorpora = (curCorpora, newCorpora) => {
+  const updatedCorpora = curCorpora.slice();
+  for (let corpus of newCorpora) {
+    updatedCorpora.push(corpus._id);
+  }
+  return updatedCorpora;
+};
+
+const updateBag = async (id, updateAttributes, db) => {
+  const objectID = parseObjectID(id);
+  const result = await putBagOfWords(objectID, updateAttributes, db);
+  return result;
+};
+
+module.exports = { createBagOfWords, getBagsByID, addToBagCorpora, updateBag };

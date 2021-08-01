@@ -10,4 +10,23 @@ const getBagsOfWords = async (objectIDs, db) => {
   return result;
 };
 
-module.exports = { postBagOfWords, getBagsOfWords };
+const getBagOfWords = async (objectID, db) => {
+  const bags = db.collection("bagsOfWords");
+  const result = await bags.findOne({ _id: objectID });
+  return result;
+};
+
+const putBagOfWords = async (objectID, updateAttributes, db) => {
+  const bags = db.collection("bagsOfWords");
+  const filter = { _id: objectID };
+  const updateDoc = { $set: updateAttributes };
+  const result = await bags.updateOne(filter, updateDoc);
+  return result;
+};
+
+module.exports = {
+  postBagOfWords,
+  getBagsOfWords,
+  getBagOfWords,
+  putBagOfWords,
+};

@@ -8,4 +8,6 @@ router.post("/", bagsOfWords.postBagOfWords);
 
 router.get("/", bagsOfWords.getBagsOfWords);
 
+router.put("/addCorpora", bagsOfWords.addCorpora);
+
 module.exports = { router };

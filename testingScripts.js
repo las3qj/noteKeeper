@@ -30,6 +30,17 @@ const testAddBags = async (corpusID, bagIDs) => {
   return response;
 };
 
+const testAddCorpora = async (bagID, corporaIDs) => {
+  const response = await axios.put(
+    "http://localhost:3000/bagOfWords/addCorpora",
+    {
+      bagID,
+      corporaIDs,
+    }
+  );
+  return response;
+};
+
 const testPBOWSuite = () => {
   const testFilePrefix = "./testFiles/";
   const testFiles = ["test1.txt"];
@@ -72,7 +83,7 @@ const testPCSuite = () => {
   }
 };
 
-constABSuite = () => {
+const constABSuite = () => {
   const testParams = [
     {
       corpusID: "6105a5706a26f24cb23c7fc3",
@@ -88,4 +99,20 @@ constABSuite = () => {
   }
 };
 
-testPCSuite();
+const testACSuite = () => {
+  const testParams = [
+    {
+      bagID: "6106f39cab6982f8852677d1",
+      corporaIDs: ["6106d819d96affc3c35a32d4"],
+    },
+  ];
+  for (test of testParams) {
+    console.log("Testing ..." + test.bagID);
+    testAddCorpora(test.bagID, test.corporaIDs).then((response) => {
+      console.log(response);
+    });
+    console.log("End test suite ...");
+  }
+};
+
+testACSuite();
