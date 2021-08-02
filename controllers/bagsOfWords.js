@@ -3,7 +3,7 @@ const { tokenize } = require("./../services/textWrangling");
 const { createNoteTable } = require("./../services/tabling");
 const { createBagOfWords, getBagsByID } = require("./../services/bagsOfWords");
 const { controlWrapper } = require("./../services/misc");
-const { addCorporaToBag } = require("../services/relationalOps");
+const { handleAddCorporaToBag } = require("../services/relationalOps");
 
 const postBagOfWords = async (req, res) => {
   controlWrapper(res, async (db) => {
@@ -29,7 +29,7 @@ const getBagsOfWords = async (req, res) => {
 const addCorpora = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { bagID, corporaIDs } = req.body;
-    await addCorporaToBag(bagID, corporaIDs, db);
+    await handleAddCorporaToBag(bagID, corporaIDs, db);
     res.sendStatus(200);
   });
 };

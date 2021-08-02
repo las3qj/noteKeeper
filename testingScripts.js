@@ -43,7 +43,7 @@ const testAddCorpora = async (bagID, corporaIDs) => {
 
 const testPBOWSuite = () => {
   const testFilePrefix = "./testFiles/";
-  const testFiles = ["test1.txt"];
+  const testFiles = ["Baldwin1.txt", "Baldwin2.txt"];
   for (file of testFiles) {
     console.log("Testing ... " + testFilePrefix + file);
     testPostBagOfWords(testFilePrefix + file).then((response) =>
@@ -67,9 +67,9 @@ const testGBOWSuite = () => {
 const testPCSuite = () => {
   const testParams = [
     {
-      name: "testCorpus",
-      description: "testDescription",
-      bagIDs: ["61022df1213b94825db82a96", "61022e13213b94825db82a97"],
+      name: "James Baldwin",
+      description: "James Baldwin quotes from  'The Fire Next Time.'",
+      bagIDs: ["61076257cbe7e5440eb17620", "61076257cbe7e5440eb17621"],
     },
   ];
   for (test of testParams) {
@@ -86,8 +86,8 @@ const testPCSuite = () => {
 const constABSuite = () => {
   const testParams = [
     {
-      corpusID: "6105a5706a26f24cb23c7fc3",
-      bagIDs: ["61058acfa0b2ed02b01a652a", "6105a34ef610e8b0f767e248"],
+      corpusID: "610760964076ff7c9db6aeb8",
+      bagIDs: ["610760224076ff7c9db6aeb7"],
     },
   ];
   for (test of testParams) {
@@ -114,5 +114,4 @@ const testACSuite = () => {
     console.log("End test suite ...");
   }
 };
-
-testACSuite();
+testPCSuite();

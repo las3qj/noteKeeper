@@ -2,14 +2,25 @@ const { getBagsByID } = require("./../services/bagsOfWords");
 const { createCorpusTable } = require("./../services/tabling");
 const { createCorpus } = require("./../services/corpora");
 const { controlWrapper } = require("./../services/misc");
-const { addBagsToCorpus } = require("./../services/relationalOps");
+const {
+  handleAddBagsToCorpus,
+  addCorporaToBags,
+} = require("./../services/relationalOps");
 
 const postCorpus = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { name, description, bagIDs } = req.body;
-    const bagArray = await getBagsByID(bagIDs, db);
-    const table = createCorpusTable(bagArray);
-    await createCorpus(name, description, bagIDs, table, db);
+    let table = {};
+    let bagArray = [];
+    if (bagIDs.length > 0) {
+      bagArray = await getBagsByID(bagIDs, db);
+      table = createCorpusTable(bagArray);
+    }
+    const result = await createCorpus(name, description, bagIDs, table, db);
+    if (bagIDs.length > 0) {
+      const corpusID = result.insertedId;
+      await addCorporaToBags(bagArray, [{ _id: corpusID }], db);
+    }
     res.sendStatus(200);
   });
 };
@@ -17,7 +28,7 @@ const postCorpus = async (req, res) => {
 const addBags = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { corpusID, bagIDs } = req.body;
-    await addBagsToCorpus(corpusID, bagIDs, db);
+    await handleAddBagsToCorpus(corpusID, bagIDs, db);
     res.sendStatus(200);
   });
 };
