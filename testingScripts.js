@@ -1,41 +1,41 @@
 const axios = require("axios");
-const testPostBagOfWords = async (testFileLoc) => {
+const postBag = async (testFileLoc) => {
   const response = await axios.post("http://localhost:3000/bagOfWords", {
     filePath: testFileLoc,
   });
   return response;
 };
 
-const testGetBagsOfWords = async (ids) => {
+const getBags = async (idArray) => {
   const response = await axios.get("http://localhost:3000/bagOfWords", {
-    params: { ids: ids },
+    params: { ids: idArray },
   });
   return response;
 };
 
-const testPostCorpus = async (name, description, bagIDs) => {
+const postCorpus = async (name, description, bagIDArray) => {
   const response = await axios.post("http://localhost:3000/corpus", {
     name,
     description,
-    bagIDs,
+    bagIDs: bagIDArray,
   });
   return response;
 };
 
-const testAddBags = async (corpusID, bagIDs) => {
+const addBags = async (corpusID, bagIDArray) => {
   const response = await axios.put("http://localhost:3000/corpus/addBags", {
     corpusID,
-    bagIDs,
+    bagIDs: bagIDArray,
   });
   return response;
 };
 
-const testAddCorpora = async (bagID, corporaIDs) => {
+const addCorpora = async (bagID, corporaIDArray) => {
   const response = await axios.put(
     "http://localhost:3000/bagOfWords/addCorpora",
     {
       bagID,
-      corporaIDs,
+      corporaIDs: corporaIDArray,
     }
   );
   return response;
@@ -114,4 +114,11 @@ const testACSuite = () => {
     console.log("End test suite ...");
   }
 };
-testPCSuite();
+
+module.exports = {
+  postBag,
+  getBags,
+  postCorpus,
+  addBags,
+  addCorpora,
+};

@@ -12,6 +12,7 @@
     "axios": "^0.21.1",
     "express": "^4.17.1",
     "fs": "0.0.1-security",
-    "mongodb": "^4.0.1"
+    "mongodb": "^4.0.1",
+    "prompt-sync": "^4.2.0"
   }
 }
