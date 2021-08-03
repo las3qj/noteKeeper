@@ -1,7 +1,10 @@
 const { getBagsByID, addToBagCorpora, updateBag } = require("./bagsOfWords");
 const { getCorporaByID, addToCorpusBags, updateCorpus } = require("./corpora");
-const { addToCorpusTable } = require("./tabling");
-const { parseObjectIDArray } = require("./misc");
+const {
+  addToCorpusTable,
+  createDeltaTable,
+  updateCorpusTable,
+} = require("./tabling");
 
 const addCorporaToBags = async (bags, corpora, db) => {
   const resArray = bags.map((bag) => addCorporaToBag(bag, corpora, db));
@@ -66,8 +69,25 @@ const handleAddCorporaToBag = async (bagID, corporaID, db) => {
   return res;
 };
 
+const updateBagCorpus = async (corpus, bagID, deltaTable, db) => {
+  const table = updateCorpusTable(corpus.table, deltaTable, bagID);
+  const result = await updateCorpus(corpus._id.toString(), { table }, db);
+  return result;
+};
+
+const handleUpdateBagCorpora = async (oldBag, newTable, db) => {
+  const deltaTable = createDeltaTable(oldBag.table, newTable);
+  const bagID = oldBag._id.toString();
+  const corporaArray = await getCorporaByID(oldBag.corpora, db);
+  const res = await Promise.all(
+    corporaArray.map((corpus) => updateBagCorpus(corpus, bagID, deltaTable, db))
+  );
+  return res;
+};
+
 module.exports = {
   addCorporaToBags,
   handleAddCorporaToBag,
   handleAddBagsToCorpus,
+  handleUpdateBagCorpora,
 };

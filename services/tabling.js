@@ -21,6 +21,23 @@ const createNoteTable = (tokens) => {
   return table;
 };
 
+const createDeltaTable = (oldTable, newTable) => {
+  for (var token in oldTable) {
+    const tableEntry = newTable[token];
+    if (tableEntry === undefined) {
+      newTable[token] = { counts: -1 * oldTable.counts };
+    } else {
+      const newCounts = newTable[token].counts - oldTable[token].counts;
+      if (newCounts !== 0) {
+        newTable[token] = { counts: newCounts };
+      } else {
+        delete newTable[token];
+      }
+    }
+  }
+  return newTable;
+};
+
 /**
  * Given an array of note docs, creates a master table with all tokens, cumulative counts, and counts by docID
  * @param {Array <Object>} docs - Array of note doc objects, with table and id fields defined
@@ -51,4 +68,37 @@ const addToCorpusTable = (masterTable, bagsArray) => {
   return masterTable;
 };
 
-module.exports = { createNoteTable, createCorpusTable, addToCorpusTable };
+const updateCorpusTable = (masterTable, deltaTable, bagID) => {
+  for (var token in deltaTable) {
+    const delta = deltaTable[token].counts;
+    const masterEntry = masterTable[token];
+    if (masterEntry === undefined) {
+      masterTable[token] = { counts: delta, byDoc: { [bagID]: delta } };
+    } else {
+      const newCounts = masterTable[token].counts + delta;
+      const newDocCounts = masterTable[token].byDoc[bagID] + delta;
+      if (newCounts > 0) {
+        masterTable[token].counts = newCounts;
+        if (newDocCounts > 0) {
+          masterTable[token].byDoc = {
+            ...masterEntry.byDoc,
+            [bagID]: newDocCounts,
+          };
+        } else {
+          delete masterTable[token].byDoc[bagID];
+        }
+      } else {
+        delete masterTable[token];
+      }
+    }
+  }
+  return masterTable;
+};
+
+module.exports = {
+  createNoteTable,
+  createCorpusTable,
+  addToCorpusTable,
+  updateCorpusTable,
+  createDeltaTable,
+};

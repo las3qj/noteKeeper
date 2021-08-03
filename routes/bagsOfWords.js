@@ -10,4 +10,6 @@ router.get("/", bagsOfWords.getBagsOfWords);
 
 router.put("/addCorpora", bagsOfWords.addCorpora);
 
+router.put("/updateText", bagsOfWords.updateText);
+
 module.exports = { router };
