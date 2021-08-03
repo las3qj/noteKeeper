@@ -49,6 +49,14 @@ const updateText = async (bagID, filePath) => {
   return response;
 };
 
+const removeCorpora = async (bagID, corporaIDArray) => {
+  const response = await axios.put(
+    "http://localhost:3000/bagOfWords/removeCorpora",
+    { bagID, corporaIDs: corporaIDArray }
+  );
+  return response;
+};
+
 const testPBOWSuite = () => {
   const testFilePrefix = "./testFiles/";
   const testFiles = ["Baldwin1.txt", "Baldwin2.txt"];
@@ -129,5 +137,6 @@ module.exports = {
   postCorpus,
   addBags,
   addCorpora,
+  removeCorpora,
   updateText,
 };

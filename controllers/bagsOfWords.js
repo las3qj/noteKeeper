@@ -10,6 +10,7 @@ const { controlWrapper } = require("./../services/misc");
 const {
   handleAddCorporaToBag,
   handleUpdateBagCorpora,
+  handleRemoveCorporaFromBag,
 } = require("../services/relationalOps");
 
 const postBagOfWords = async (req, res) => {
@@ -62,4 +63,18 @@ const addCorpora = async (req, res) => {
   });
 };
 
-module.exports = { postBagOfWords, getBagsOfWords, addCorpora, updateText };
+const removeCorpora = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const { bagID, corporaIDs } = req.body;
+    await handleRemoveCorporaFromBag(bagID, corporaIDs, db);
+    res.sendStatus(200);
+  });
+};
+
+module.exports = {
+  postBagOfWords,
+  getBagsOfWords,
+  addCorpora,
+  updateText,
+  removeCorpora,
+};

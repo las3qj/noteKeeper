@@ -38,6 +38,14 @@ const createDeltaTable = (oldTable, newTable) => {
   return newTable;
 };
 
+const createInverseTable = (oldTable) => {
+  const table = {};
+  for (let token in oldTable) {
+    table[token] = { counts: -1 * oldTable[token].counts };
+  }
+  return table;
+};
+
 /**
  * Given an array of note docs, creates a master table with all tokens, cumulative counts, and counts by docID
  * @param {Array <Object>} docs - Array of note doc objects, with table and id fields defined
@@ -101,4 +109,5 @@ module.exports = {
   addToCorpusTable,
   updateCorpusTable,
   createDeltaTable,
+  createInverseTable,
 };

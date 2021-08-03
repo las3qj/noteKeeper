@@ -12,4 +12,6 @@ router.put("/addCorpora", bagsOfWords.addCorpora);
 
 router.put("/updateText", bagsOfWords.updateText);
 
+router.put("/removeCorpora", bagsOfWords.removeCorpora);
+
 module.exports = { router };
