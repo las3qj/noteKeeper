@@ -101,6 +101,20 @@ const removeBagFromCorpus = async (corpus, bagOID, inverseTable, db) => {
   return result;
 };
 
+const removeBagsFromCorpus = async (corpus, bagArray, db) => {
+  let table = corpus.table;
+  bagArray.forEach((bag) => {
+    const inverseTable = createInverseTable(bag.table);
+    table = updateCorpusTable(table, inverseTable, bag._id.toString());
+  });
+  const bags = corpus.bags.filter(
+    (cBag) =>
+      bagArray.findIndex((bag) => bag._id.toString() === cBag.toString()) < 0
+  );
+  const result = await updateCorpus(corpus._id.toString(), { table, bags }, db);
+  return result;
+};
+
 const removeBagFromCorpora = async (corporaArray, bag, db) => {
   const inverseTable = createInverseTable(bag.table);
   const res = await Promise.all(
@@ -111,12 +125,26 @@ const removeBagFromCorpora = async (corporaArray, bag, db) => {
   return res;
 };
 
+/*const removeBagsFromCorpora = async (corporaArray, bags, db) => {
+  const results = await Promise.all(
+    bags.map((bag) => removeBagFromCorpora(corporaArray, bag, db))
+  );
+  return results;
+};*/
+
 const removeCorporaFromBag = async (bag, corporaIDs, db) => {
   const corpora = bag.corpora.filter(
     (corpusOID) => !corporaIDs.includes(corpusOID.toString())
   );
   const result = await updateBag(bag._id.toString(), { corpora }, db);
   return result;
+};
+
+const removeCorporaFromBags = async (bags, corporaIDs, db) => {
+  const results = await Promise.all(
+    bags.map((bag) => removeCorporaFromBag(bag, corporaIDs, db))
+  );
+  return results;
 };
 
 const handleRemoveCorporaFromBag = async (bagID, corporaIDs, db) => {
@@ -133,10 +161,25 @@ const handleRemoveCorporaFromBag = async (bagID, corporaIDs, db) => {
   return result;
 };
 
+const handleRemoveBagsFromCorpus = async (corpusID, bagIDs, db) => {
+  const { bagArray, corporaArray } = await getBagsAndCorporaByIDs(
+    bagIDs,
+    [corpusID],
+    db
+  );
+  const corpus = corporaArray[0];
+  const result = await Promise.all([
+    removeCorporaFromBags(bagArray, [corpusID], db),
+    removeBagsFromCorpus(corpus, bagArray, db),
+  ]);
+  return result;
+};
+
 module.exports = {
   addCorporaToBags,
   handleAddCorporaToBag,
   handleAddBagsToCorpus,
   handleUpdateBagCorpora,
   handleRemoveCorporaFromBag,
+  handleRemoveBagsFromCorpus,
 };

@@ -57,6 +57,14 @@ const removeCorpora = async (bagID, corporaIDArray) => {
   return response;
 };
 
+const removeBags = async (corpusID, bagsIDArray) => {
+  const response = await axios.put("http://localhost:3000/corpus/removeBags", {
+    corpusID,
+    bagIDs: bagsIDArray,
+  });
+  return response;
+};
+
 const testPBOWSuite = () => {
   const testFilePrefix = "./testFiles/";
   const testFiles = ["Baldwin1.txt", "Baldwin2.txt"];
@@ -136,6 +144,7 @@ module.exports = {
   getBags,
   postCorpus,
   addBags,
+  removeBags,
   addCorpora,
   removeCorpora,
   updateText,
