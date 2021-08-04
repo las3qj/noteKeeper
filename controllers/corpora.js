@@ -6,6 +6,7 @@ const {
   handleAddBagsToCorpus,
   addCorporaToBags,
   handleRemoveBagsFromCorpus,
+  handlePutBagsInCorpus,
 } = require("./../services/relationalOps");
 
 const postCorpus = async (req, res) => {
@@ -42,4 +43,13 @@ const removeBags = async (req, res) => {
   });
 };
 
-module.exports = { postCorpus, addBags, removeBags };
+const putBags = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const { corpusID, bagIDs } = req.body;
+    console.log("putBags: " + corpusID + " " + bagIDs.toString());
+    await handlePutBagsInCorpus(corpusID, bagIDs, db);
+    res.sendStatus(200);
+  });
+};
+
+module.exports = { postCorpus, addBags, removeBags, putBags };

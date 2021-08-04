@@ -4,8 +4,12 @@ const corpora = require("./../controllers/corpora");
 
 const router = express.Router();
 
+//router.get("/", corpora.getCorpora);
 router.post("/", corpora.postCorpus);
-router.put("/addBags", corpora.addBags);
-router.put("/removeBags", corpora.removeBags);
+//router.put("/", corpora.putCorpus);
+//router.delete("/", corpora.deleteCorpora);
+router.post("/bags", corpora.addBags);
+router.delete("/bags", corpora.removeBags);
+router.put("/bags", corpora.putBags);
 
 module.exports = { router };

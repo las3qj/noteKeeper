@@ -23,7 +23,7 @@ const postCorpus = async (name, description, bagIDArray) => {
 };
 
 const addBags = async (corpusID, bagIDArray) => {
-  const response = await axios.put("http://localhost:3000/corpus/addBags", {
+  const response = await axios.post("http://localhost:3000/corpus/bags", {
     corpusID,
     bagIDs: bagIDArray,
   });
@@ -58,7 +58,17 @@ const removeCorpora = async (bagID, corporaIDArray) => {
 };
 
 const removeBags = async (corpusID, bagsIDArray) => {
-  const response = await axios.put("http://localhost:3000/corpus/removeBags", {
+  const response = await axios.delete("http://localhost:3000/corpus/bags", {
+    data: {
+      corpusID,
+      bagIDs: bagsIDArray,
+    },
+  });
+  return response;
+};
+
+const putBags = async (corpusID, bagsIDArray) => {
+  const response = await axios.put("http://localhost:3000/corpus/bags", {
     corpusID,
     bagIDs: bagsIDArray,
   });
@@ -145,6 +155,7 @@ module.exports = {
   postCorpus,
   addBags,
   removeBags,
+  putBags,
   addCorpora,
   removeCorpora,
   updateText,
