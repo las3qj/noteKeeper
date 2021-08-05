@@ -19,6 +19,9 @@ const createCorpus = async (name, description, ids, table, db) => {
 };
 
 const getCorporaByID = async (ids, db) => {
+  if (ids.length === 0) {
+    return [];
+  }
   const objectIDArray = parseObjectIDArray(ids);
   let result;
   if (objectIDArray.length > 1) {

@@ -31,8 +31,8 @@ const addBags = async (corpusID, bagIDArray) => {
 };
 
 const addCorpora = async (bagID, corporaIDArray) => {
-  const response = await axios.put(
-    "http://localhost:3000/bagOfWords/addCorpora",
+  const response = await axios.post(
+    "http://localhost:3000/bagOfWords/corpora",
     {
       bagID,
       corporaIDs: corporaIDArray,
@@ -42,17 +42,17 @@ const addCorpora = async (bagID, corporaIDArray) => {
 };
 
 const updateText = async (bagID, filePath) => {
-  const response = await axios.put(
-    "http://localhost:3000/bagOfWords/updateText",
-    { bagID, filePath }
-  );
+  const response = await axios.put("http://localhost:3000/bagOfWords/text", {
+    bagID,
+    filePath,
+  });
   return response;
 };
 
 const removeCorpora = async (bagID, corporaIDArray) => {
-  const response = await axios.put(
-    "http://localhost:3000/bagOfWords/removeCorpora",
-    { bagID, corporaIDs: corporaIDArray }
+  const response = await axios.delete(
+    "http://localhost:3000/bagOfWords/corpora",
+    { data: { bagID, corporaIDs: corporaIDArray } }
   );
   return response;
 };
@@ -71,6 +71,14 @@ const putBags = async (corpusID, bagsIDArray) => {
   const response = await axios.put("http://localhost:3000/corpus/bags", {
     corpusID,
     bagIDs: bagsIDArray,
+  });
+  return response;
+};
+
+const putCorpora = async (bagID, corporaIDArray) => {
+  const response = await axios.put("http://localhost:3000/bagOfWords/corpora", {
+    bagID,
+    corporaIDs: corporaIDArray,
   });
   return response;
 };
@@ -158,5 +166,6 @@ module.exports = {
   putBags,
   addCorpora,
   removeCorpora,
+  putCorpora,
   updateText,
 };

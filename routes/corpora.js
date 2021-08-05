@@ -8,6 +8,7 @@ const router = express.Router();
 router.post("/", corpora.postCorpus);
 //router.put("/", corpora.putCorpus);
 //router.delete("/", corpora.deleteCorpora);
+
 router.post("/bags", corpora.addBags);
 router.delete("/bags", corpora.removeBags);
 router.put("/bags", corpora.putBags);

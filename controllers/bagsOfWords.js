@@ -11,6 +11,7 @@ const {
   handleAddCorporaToBag,
   handleUpdateBagCorpora,
   handleRemoveCorporaFromBag,
+  handlePutCorporaInBag,
 } = require("../services/relationalOps");
 
 const postBagOfWords = async (req, res) => {
@@ -71,10 +72,19 @@ const removeCorpora = async (req, res) => {
   });
 };
 
+const putCorpora = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const { bagID, corporaIDs } = req.body;
+    await handlePutCorporaInBag(bagID, corporaIDs, db);
+    res.sendStatus(200);
+  });
+};
+
 module.exports = {
   postBagOfWords,
   getBagsOfWords,
   addCorpora,
   updateText,
   removeCorpora,
+  putCorpora,
 };

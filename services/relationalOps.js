@@ -9,7 +9,6 @@ const {
 } = require("./tabling");
 
 const addCorporaToBags = async (bags, corpora, db) => {
-  console.log("addCorporaToBags" + bags.toString() + corpora.toString());
   const resArray = bags.map((bag) => addCorporaToBag(bag, corpora, db));
   const result = await Promise.all(resArray);
   return result;
@@ -143,7 +142,6 @@ const removeCorporaFromBag = async (bag, corporaIDs, db) => {
 };
 
 const removeCorporaFromBags = async (bags, corporaIDs, db) => {
-  console.log("remove corpora from bags: " + bags.toString());
   const results = await Promise.all(
     bags.map((bag) => removeCorporaFromBag(bag, corporaIDs, db))
   );
@@ -192,6 +190,22 @@ const getBagDiffs = (corpusBags, putBagIDs) => {
   }
   return { bagsToAdd, bagsToRemove };
 };
+const getCorporaDiffs = (bagCorpora, putCorporaIDs) => {
+  const corporaToAdd = putCorporaIDs.slice();
+  const corporaToRemove = bagCorpora.slice();
+  for (let rI = 0; rI < corporaToRemove.length; ) {
+    let aI = corporaToAdd.findIndex(
+      (corpus) => corpus === corporaToRemove[rI].toString()
+    );
+    if (aI > -1) {
+      corporaToRemove.splice(rI, 1);
+      corporaToAdd.splice(aI, 1);
+    } else {
+      rI++;
+    }
+  }
+  return { corporaToAdd, corporaToRemove };
+};
 
 const putBagsInCorpus = async (
   corpus,
@@ -201,14 +215,11 @@ const putBagsInCorpus = async (
   db
 ) => {
   let table = corpus.table;
-  console.log("putBagsInCorpus corpus.table: ", table);
   removeBags.forEach((bag) => {
     const inverseTable = createInverseTable(bag.table);
     table = updateCorpusTable(table, inverseTable, bag._id.toString());
   });
-  console.log("not removeBags tables either");
   const newTable = addToCorpusTable(table, addBags);
-  console.log("newTable: " + newTable.toString());
   const bags = parseObjectIDArray(updateBagIDs);
 
   const result = await updateCorpus(
@@ -221,19 +232,12 @@ const putBagsInCorpus = async (
 
 const handlePutBagsInCorpus = async (corpusID, bagIDs, db) => {
   const corporaArray = await getCorporaByID([corpusID], db);
-  console.log("corporaArray: " + corporaArray.toString());
   const corpus = corporaArray[0];
   const { bagsToAdd, bagsToRemove } = getBagDiffs(corpus.bags, bagIDs);
-  console.log(
-    "get bag diffs: " + bagsToAdd.toString() + bagsToRemove.toString()
-  );
   const [addBags, removeBags] = await Promise.all([
     getBagsByID(bagsToAdd, db),
     getBagsByID(bagsToRemove, db),
   ]);
-  console.log(
-    "get add and remove bags: " + addBags.toString() + removeBags.toString()
-  );
   const corpResult = putBagsInCorpus(corpus, addBags, removeBags, bagIDs, db);
 
   const bagsResult = Promise.all([
@@ -245,6 +249,33 @@ const handlePutBagsInCorpus = async (corpusID, bagIDs, db) => {
   return result;
 };
 
+const handlePutCorporaInBag = async (bagID, corporaIDs, db) => {
+  const bagArray = await getBagsByID([bagID], db);
+  const bag = bagArray[0];
+  const { corporaToAdd, corporaToRemove } = getCorporaDiffs(
+    bag.corpora,
+    corporaIDs
+  );
+  const [addCorpora, removeCorpora] = await Promise.all([
+    getCorporaByID(corporaToAdd, db),
+    getCorporaByID(corporaToRemove, db),
+  ]);
+
+  const corporaOIDs = parseObjectIDArray(corporaIDs);
+  const bagResult = updateBag(bagID, { corpora: corporaOIDs }, db);
+  const corporaAddResult = Promise.all(
+    addCorpora.map((corpus) => addBagsToCorpus(corpus, [bag], db))
+  );
+  const corporaResult = Promise.all([
+    removeBagFromCorpora(removeCorpora, bag, db),
+    corporaAddResult,
+  ]);
+  const results = await Promise.all([bagResult, corporaResult]);
+  return results;
+
+  //console.log("needs to be tested!!!!!!!!!!");
+};
+
 module.exports = {
   addCorporaToBags,
   handleAddCorporaToBag,
@@ -253,4 +284,5 @@ module.exports = {
   handleRemoveCorporaFromBag,
   handleRemoveBagsFromCorpus,
   handlePutBagsInCorpus,
+  handlePutCorporaInBag,
 };

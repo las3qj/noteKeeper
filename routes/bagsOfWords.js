@@ -5,13 +5,12 @@ const bagsOfWords = require("./../controllers/bagsOfWords");
 const router = express.Router();
 
 router.post("/", bagsOfWords.postBagOfWords);
-
 router.get("/", bagsOfWords.getBagsOfWords);
 
-router.put("/addCorpora", bagsOfWords.addCorpora);
+router.put("/text", bagsOfWords.updateText);
 
-router.put("/updateText", bagsOfWords.updateText);
-
-router.put("/removeCorpora", bagsOfWords.removeCorpora);
+router.post("/corpora", bagsOfWords.addCorpora);
+router.delete("/corpora", bagsOfWords.removeCorpora);
+router.put("/corpora", bagsOfWords.putCorpora);
 
 module.exports = { router };
