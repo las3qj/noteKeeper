@@ -3,6 +3,7 @@ const {
   getCorpora,
   getCorpus,
   putCorpus,
+  deleteCorpus,
 } = require("./../database/corpora");
 const { parseObjectIDArray, parseObjectID } = require("./misc");
 const { updateCorpusTable, addToCorpusTable } = require("./tabling");
@@ -16,6 +17,12 @@ const createCorpus = async (name, description, ids, table, db) => {
     table,
   };
   const result = await postCorpus(corpusDoc, db);
+  return result;
+};
+
+const deleteCorpusByID = async (corpusID, db) => {
+  const objectID = parseObjectID(corpusID);
+  const result = await deleteCorpus(objectID, db);
   return result;
 };
 
@@ -94,4 +101,5 @@ module.exports = {
   updateCorpora,
   removeBagsFromCorpus,
   putBagsInCorpus,
+  deleteCorpusByID,
 };

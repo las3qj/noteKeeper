@@ -24,4 +24,11 @@ const putCorpus = async (objectID, updateAttributes, db) => {
   return result;
 };
 
-module.exports = { postCorpus, getCorpora, getCorpus, putCorpus };
+const deleteCorpus = async (objectID, db) => {
+  const corpora = db.collection("corpora");
+  const query = { _id: objectID };
+  const result = await corpora.deleteOne(query);
+  return result;
+};
+
+module.exports = { postCorpus, getCorpora, getCorpus, putCorpus, deleteCorpus };

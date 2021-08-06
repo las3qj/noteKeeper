@@ -31,6 +31,13 @@ const postCorpus = async (name, description, bagIDArray) => {
   return response;
 };
 
+const deleteCorpus = async (corpusID) => {
+  const response = await axios.delete("http://localhost:3000/corpus", {
+    data: { corpusID },
+  });
+  return response;
+};
+
 const putCorpus = async (corpusID, name, description, bagIDsArray) => {
   const response = await axios.put("http://localhost:3000/corpus", {
     corpusID,
@@ -182,6 +189,7 @@ module.exports = {
   getBags,
   postCorpus,
   putCorpus,
+  deleteCorpus,
   addBags,
   removeBags,
   putBags,

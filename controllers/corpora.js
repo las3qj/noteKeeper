@@ -15,6 +15,7 @@ const {
   getCorporaByID,
   removeBagsFromCorpus,
   putBagsInCorpus,
+  deleteCorpusByID,
 } = require("./../services/corpora");
 const { controlWrapper, getDifferences } = require("./../services/misc");
 const { getBagsAndCorporaByIDs } = require("./../services/common");
@@ -36,6 +37,23 @@ const postCorpus = async (req, res) => {
       );
       await updateBags(bagIDs, updatedBags, db);
     }
+    res.sendStatus(200);
+  });
+};
+
+const deleteCorpus = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const { corpusID } = req.body;
+    const corporaArray = await getCorporaByID([corpusID], db);
+    const bagIDs = corporaArray[0].bags;
+    const bagArray = await getBagsByID(bagIDs, db);
+    const updatedBags = bagArray.map((bag) =>
+      removeCorporaFromBag(bag, [corpusID])
+    );
+    await Promise.all([
+      updateBags(bagIDs, updatedBags, db),
+      deleteCorpusByID(corpusID, db),
+    ]);
     res.sendStatus(200);
   });
 };
@@ -161,4 +179,11 @@ const putCorpus = async (req, res) => {
   });
 };*/
 
-module.exports = { postCorpus, addBags, removeBags, putBags, putCorpus };
+module.exports = {
+  postCorpus,
+  addBags,
+  removeBags,
+  putBags,
+  putCorpus,
+  deleteCorpus,
+};
