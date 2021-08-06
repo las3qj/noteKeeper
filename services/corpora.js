@@ -5,6 +5,7 @@ const {
   putCorpus,
 } = require("./../database/corpora");
 const { parseObjectIDArray, parseObjectID } = require("./misc");
+const { updateCorpusTable, addToCorpusTable } = require("./tabling");
 
 const createCorpus = async (name, description, ids, table, db) => {
   const bags = parseObjectIDArray(ids);
@@ -33,12 +34,43 @@ const getCorporaByID = async (ids, db) => {
   return result;
 };
 
-const addToCorpusBags = (currentBags, newBags) => {
-  const updatedBags = currentBags.slice();
-  for (let bag of newBags) {
+const addBagsToCorpus = (corpus, bagArray) => {
+  const updatedBags = corpus.bags.slice();
+  for (let bag of bagArray) {
     updatedBags.push(bag._id);
   }
-  return updatedBags;
+  const updatedTable = addToCorpusTable(corpus.table, bagArray);
+  return { bags: updatedBags, table: updatedTable };
+};
+
+const removeBagsFromCorpus = (corpus, bagIDs, inverseTables) => {
+  let table = corpus.table;
+  const bags = corpus.bags.slice();
+  bagIDs.map((id, index) => {
+    bags.splice(
+      bags.findIndex((bag) => bag.toString() === id),
+      1
+    );
+    table = updateCorpusTable(table, inverseTables[index], id);
+  });
+  return { table, bags };
+};
+
+const putBagsInCorpus = (
+  corpus,
+  addBags,
+  inverseTables,
+  removeIDs,
+  updateBagIDs
+) => {
+  let table = corpus.table;
+  inverseTables.forEach((inverseTable, index) => {
+    table = updateCorpusTable(table, inverseTable, removeIDs[index]);
+  });
+  const newTable = addToCorpusTable(table, addBags);
+  const bags = parseObjectIDArray(updateBagIDs);
+
+  return { table: newTable, bags };
 };
 
 const updateCorpus = async (id, updateAttributes, db) => {
@@ -47,9 +79,19 @@ const updateCorpus = async (id, updateAttributes, db) => {
   return result;
 };
 
+const updateCorpora = async (ids, updateAttributesArray, db) => {
+  const results = await Promise.all(
+    ids.map((id, index) => updateCorpus(id, updateAttributesArray[index], db))
+  );
+  return results;
+};
+
 module.exports = {
   createCorpus,
   getCorporaByID,
-  addToCorpusBags,
+  addBagsToCorpus,
   updateCorpus,
+  updateCorpora,
+  removeBagsFromCorpus,
+  putBagsInCorpus,
 };

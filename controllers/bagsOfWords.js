@@ -1,18 +1,30 @@
 const { parseTxtFile } = require("./../services/fileParsing");
 const { tokenize } = require("./../services/textWrangling");
-const { createNoteTable } = require("./../services/tabling");
+const {
+  createNoteTable,
+  createInverseTable,
+  createDeltaTable,
+  updateCorpusTable,
+} = require("./../services/tabling");
 const {
   createBagOfWords,
   getBagsByID,
   updateBag,
+  addCorporaToBag,
+  removeCorporaFromBag,
 } = require("./../services/bagsOfWords");
-const { controlWrapper } = require("./../services/misc");
 const {
-  handleAddCorporaToBag,
-  handleUpdateBagCorpora,
-  handleRemoveCorporaFromBag,
-  handlePutCorporaInBag,
-} = require("../services/relationalOps");
+  controlWrapper,
+  getDifferences,
+  parseObjectIDArray,
+} = require("./../services/misc");
+const { getBagsAndCorporaByIDs } = require("./../services/common");
+const {
+  addBagsToCorpus,
+  updateCorpora,
+  removeBagsFromCorpus,
+  getCorporaByID,
+} = require("./../services/corpora");
 
 const postBagOfWords = async (req, res) => {
   controlWrapper(res, async (db) => {
@@ -45,8 +57,14 @@ const updateText = async (req, res) => {
     const oldBags = await getBagsByID([bagID], db);
     const oldBag = oldBags[0];
     if (oldBag.corpora.length > 0) {
+      const deltaTable = createDeltaTable(oldBag.table, tableDeepCopy);
+      const corporaArray = await getCorporaByID(oldBag.corpora, db);
+      const updatedCorpora = corporaArray.map((corpus) => {
+        const table = updateCorpusTable(corpus.table, deltaTable, bagID);
+        return { table };
+      });
       await Promise.all([
-        handleUpdateBagCorpora(oldBag, tableDeepCopy, db),
+        updateCorpora(oldBag.corpora, updatedCorpora, db),
         updateBag(bagID, { textString, tokens, table }, db),
       ]);
     } else {
@@ -59,7 +77,19 @@ const updateText = async (req, res) => {
 const addCorpora = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { bagID, corporaIDs } = req.body;
-    await handleAddCorporaToBag(bagID, corporaIDs, db);
+    const { bagArray, corporaArray } = await getBagsAndCorporaByIDs(
+      [bagID],
+      corporaIDs,
+      db
+    );
+    const newCorpora = corporaArray.map((corpus) =>
+      addBagsToCorpus(corpus, bagArray)
+    );
+    const newBag = addCorporaToBag(bagArray[0], corporaArray);
+    await Promise.all([
+      updateCorpora(corporaIDs, newCorpora, db),
+      updateBag(bagID, newBag, db),
+    ]);
     res.sendStatus(200);
   });
 };
@@ -67,7 +97,21 @@ const addCorpora = async (req, res) => {
 const removeCorpora = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { bagID, corporaIDs } = req.body;
-    await handleRemoveCorporaFromBag(bagID, corporaIDs, db);
+    const { bagArray, corporaArray } = await getBagsAndCorporaByIDs(
+      [bagID],
+      corporaIDs,
+      db
+    );
+    const bag = bagArray[0];
+    const inverseTable = createInverseTable(bag.table);
+    const updatedBag = removeCorporaFromBag(bag, corporaIDs);
+    const updatedCorpora = corporaArray.map((corpus) =>
+      removeBagsFromCorpus(corpus, [bagID], [inverseTable])
+    );
+    await Promise.all([
+      updateBag(bagID, updatedBag, db),
+      updateCorpora(corporaIDs, updatedCorpora, db),
+    ]);
     res.sendStatus(200);
   });
 };
@@ -75,7 +119,27 @@ const removeCorpora = async (req, res) => {
 const putCorpora = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { bagID, corporaIDs } = req.body;
-    await handlePutCorporaInBag(bagID, corporaIDs, db);
+    const bagArray = await getBagsByID([bagID], db);
+    const bag = bagArray[0];
+    const { toAdd, toRemove } = getDifferences(bag.corpora, corporaIDs);
+    const [addCorpora, removeCorpora] = await Promise.all([
+      getCorporaByID(toAdd, db),
+      getCorporaByID(toRemove, db),
+    ]);
+
+    const corporaOIDs = parseObjectIDArray(corporaIDs);
+    const updatedAddCorpora = addCorpora.map((corpus) =>
+      addBagsToCorpus(corpus, [bag])
+    );
+    const inverseTable = createInverseTable(bag.table);
+    const updatedRemCorpora = removeCorpora.map((corpus) =>
+      removeBagsFromCorpus(corpus, [bagID], [inverseTable])
+    );
+    await Promise.all([
+      updateBag(bagID, { corpora: corporaOIDs }, db),
+      updateCorpora(toAdd, updatedAddCorpora, db),
+      updateCorpora(toRemove, updatedRemCorpora, db),
+    ]);
     res.sendStatus(200);
   });
 };

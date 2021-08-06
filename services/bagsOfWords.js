@@ -38,12 +38,19 @@ const getBagsByID = async (ids, db) => {
   return result;
 };
 
-const addToBagCorpora = (curCorpora, newCorpora) => {
-  const updatedCorpora = curCorpora.slice();
-  for (let corpus of newCorpora) {
+const addCorporaToBag = (bag, corpora) => {
+  const updatedCorpora = bag.corpora.slice();
+  for (let corpus of corpora) {
     updatedCorpora.push(corpus._id);
   }
-  return updatedCorpora;
+  return { corpora: updatedCorpora };
+};
+
+const removeCorporaFromBag = (bag, corporaIDs) => {
+  const updatedCorpora = bag.corpora.filter(
+    (corpusOID) => !corporaIDs.includes(corpusOID.toString())
+  );
+  return { corpora: updatedCorpora };
 };
 
 const updateBag = async (id, updateAttributes, db) => {
@@ -52,4 +59,18 @@ const updateBag = async (id, updateAttributes, db) => {
   return result;
 };
 
-module.exports = { createBagOfWords, getBagsByID, addToBagCorpora, updateBag };
+const updateBags = async (ids, updateAttributesArray, db) => {
+  const result = await Promise.all(
+    ids.map((id, index) => updateBag(id, updateAttributesArray[index], db))
+  );
+  return result;
+};
+
+module.exports = {
+  createBagOfWords,
+  getBagsByID,
+  addCorporaToBag,
+  removeCorporaFromBag,
+  updateBag,
+  updateBags,
+};

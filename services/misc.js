@@ -7,7 +7,10 @@ const { getClient, getDB } = require("./../database/database");
  * @returns ObjectID parsed from the given string
  */
 const parseObjectID = (string) => {
-  return ObjectId(string);
+  if (typeof string === "string") {
+    return ObjectId(string);
+  }
+  return string;
 };
 
 /**
@@ -21,6 +24,21 @@ const parseObjectIDArray = (strings) => {
     objectIDArray.push(parseObjectID(string));
   }
   return objectIDArray;
+};
+
+const getDifferences = (prevOIDs, updatedIDs) => {
+  const toAdd = updatedIDs.slice();
+  const toRemove = prevOIDs.slice();
+  for (let rI = 0; rI < toRemove.length; ) {
+    let aI = toAdd.findIndex((corpus) => corpus === toRemove[rI].toString());
+    if (aI > -1) {
+      toRemove.splice(rI, 1);
+      toAdd.splice(aI, 1);
+    } else {
+      rI++;
+    }
+  }
+  return { toAdd, toRemove };
 };
 
 const controlWrapper = async (res, funct) => {
@@ -41,4 +59,5 @@ module.exports = {
   parseObjectID,
   parseObjectIDArray,
   controlWrapper,
+  getDifferences,
 };
