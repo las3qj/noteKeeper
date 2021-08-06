@@ -3,6 +3,7 @@ const {
   getBagsOfWords,
   getBagOfWords,
   putBagOfWords,
+  deleteBagOfWords,
 } = require("./../database/bagsOfWords");
 const { parseObjectIDArray, parseObjectID } = require("./misc");
 
@@ -35,6 +36,12 @@ const getBagsByID = async (ids, db) => {
   } else {
     result = [await getBagOfWords(objectIDArray[0], db)];
   }
+  return result;
+};
+
+const deleteBagByID = async (bagID, db) => {
+  const objectID = parseObjectID(bagID);
+  const result = await deleteBagOfWords(objectID, db);
   return result;
 };
 
@@ -73,4 +80,5 @@ module.exports = {
   removeCorporaFromBag,
   updateBag,
   updateBags,
+  deleteBagByID,
 };

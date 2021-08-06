@@ -24,9 +24,17 @@ const putBagOfWords = async (objectID, updateAttributes, db) => {
   return result;
 };
 
+const deleteBagOfWords = async (objectID, db) => {
+  const bags = db.collection("bagsOfWords");
+  const query = { _id: objectID };
+  const result = await bags.deleteOne(query);
+  return result;
+};
+
 module.exports = {
   postBagOfWords,
   getBagsOfWords,
   getBagOfWords,
   putBagOfWords,
+  deleteBagOfWords,
 };

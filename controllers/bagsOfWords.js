@@ -12,6 +12,7 @@ const {
   updateBag,
   addCorporaToBag,
   removeCorporaFromBag,
+  deleteBagByID,
 } = require("./../services/bagsOfWords");
 const {
   controlWrapper,
@@ -87,6 +88,26 @@ const putBagOfWords = async (req, res) => {
       updateCorpora(toAdd, updatedAddCorpora, db),
       updateCorpora(toRemove, updatedRemCorpora, db),
       updateCorpora(unChanged, updatedUpdateCorpora, db),
+    ]);
+    res.sendStatus(200);
+  });
+};
+
+const deleteBagOfWords = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const { bagID } = req.body;
+    const bagArray = await getBagsByID([bagID], db);
+    const bag = bagArray[0];
+    const corporaIDs = bag.corpora;
+    const corporaArray = await getCorporaByID(corporaIDs, db);
+
+    const inverseTable = createInverseTable(bag.table);
+    const updatedCorpora = corporaArray.map((corpus) =>
+      removeBagsFromCorpus(corpus, [bagID], [inverseTable])
+    );
+    await Promise.all([
+      updateCorpora(corporaIDs, updatedCorpora, db),
+      deleteBagByID(bagID, db),
     ]);
     res.sendStatus(200);
   });
@@ -197,4 +218,5 @@ module.exports = {
   removeCorpora,
   putCorpora,
   putBagOfWords,
+  deleteBagOfWords,
 };

@@ -22,6 +22,13 @@ const putBag = async (bagID, filePath, corporaIDsArray) => {
   return response;
 };
 
+const deleteBag = async (bagID) => {
+  const response = await axios.delete("http://localhost:3000/bagOfWords", {
+    data: { bagID },
+  });
+  return response;
+};
+
 const postCorpus = async (name, description, bagIDArray) => {
   const response = await axios.post("http://localhost:3000/corpus", {
     name,
@@ -187,6 +194,7 @@ module.exports = {
   postBag,
   putBag,
   getBags,
+  deleteBag,
   postCorpus,
   putCorpus,
   deleteCorpus,
