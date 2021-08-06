@@ -31,6 +31,16 @@ const postCorpus = async (name, description, bagIDArray) => {
   return response;
 };
 
+const putCorpus = async (corpusID, name, description, bagIDsArray) => {
+  const response = await axios.put("http://localhost:3000/corpus", {
+    corpusID,
+    name,
+    description,
+    bagIDs: bagIDsArray,
+  });
+  return response;
+};
+
 const addBags = async (corpusID, bagIDArray) => {
   const response = await axios.post("http://localhost:3000/corpus/bags", {
     corpusID,
@@ -171,6 +181,7 @@ module.exports = {
   putBag,
   getBags,
   postCorpus,
+  putCorpus,
   addBags,
   removeBags,
   putBags,

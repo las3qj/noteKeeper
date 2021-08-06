@@ -40,6 +40,40 @@ const postCorpus = async (req, res) => {
   });
 };
 
+const putCorpus = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const { corpusID, name, description, bagIDs } = req.body;
+    const corporaArray = await getCorporaByID([corpusID], db);
+    const oldCorpus = corporaArray[0];
+    const { toAdd, toRemove } = getDifferences(oldCorpus.bags, bagIDs);
+    const [bagsToAdd, bagsToRem] = await Promise.all([
+      getBagsByID(toAdd, db),
+      getBagsByID(toRemove, db),
+    ]);
+    const updatedRemBags = [];
+    const inverseTables = [];
+    for (let bag of bagsToRem) {
+      updatedRemBags.push(removeCorporaFromBag(bag, [corpusID]));
+      inverseTables.push(createInverseTable(bag.table));
+    }
+    const updatedAddBags = bagsToAdd.map((bag) =>
+      addCorporaToBag(bag, corporaArray)
+    );
+    const corpusAfterRem = removeBagsFromCorpus(
+      oldCorpus,
+      toRemove,
+      inverseTables
+    );
+    const updatedCorpus = addBagsToCorpus(corpusAfterRem, bagsToAdd);
+    await Promise.all([
+      updateCorpus(corpusID, { ...updatedCorpus, name, description }, db),
+      updateBags(toAdd, updatedAddBags, db),
+      updateBags(toRemove, updatedRemBags, db),
+    ]);
+    res.sendStatus(200);
+  });
+};
+
 const addBags = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { corpusID, bagIDs } = req.body;
@@ -127,4 +161,4 @@ const putCorpus = async (req, res) => {
   });
 };*/
 
-module.exports = { postCorpus, addBags, removeBags, putBags };
+module.exports = { postCorpus, addBags, removeBags, putBags, putCorpus };
