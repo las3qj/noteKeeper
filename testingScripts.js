@@ -13,6 +13,15 @@ const getBags = async (idArray) => {
   return response;
 };
 
+const putBag = async (bagID, filePath, corporaIDsArray) => {
+  const response = await axios.put("http://localhost:3000/bagOfWords", {
+    bagID,
+    filePath,
+    corporaIDs: corporaIDsArray,
+  });
+  return response;
+};
+
 const postCorpus = async (name, description, bagIDArray) => {
   const response = await axios.post("http://localhost:3000/corpus", {
     name,
@@ -159,6 +168,7 @@ const testACSuite = () => {
 
 module.exports = {
   postBag,
+  putBag,
   getBags,
   postCorpus,
   addBags,

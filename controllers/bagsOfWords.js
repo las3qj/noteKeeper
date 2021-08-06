@@ -47,6 +47,51 @@ const getBagsOfWords = async (req, res) => {
   });
 };
 
+const putBagOfWords = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const { bagID, filePath, corporaIDs } = req.body;
+    const textString = parseTxtFile(filePath);
+    const tokens = tokenize(textString);
+    const table = createNoteTable(tokens);
+    const tableDeepCopy = JSON.parse(JSON.stringify(table));
+    const oldBags = await getBagsByID([bagID], db);
+    const oldBag = oldBags[0];
+
+    const { toAdd, toRemove, unChanged } = getDifferences(
+      oldBag.corpora,
+      corporaIDs
+    );
+    const [addCorpora, removeCorpora, updateCorp] = await Promise.all([
+      getCorporaByID(toAdd, db),
+      getCorporaByID(toRemove, db),
+      getCorporaByID(unChanged, db),
+    ]);
+
+    const corporaOIDs = parseObjectIDArray(corporaIDs);
+    const updatedAddCorpora = addCorpora.map((corpus) =>
+      addBagsToCorpus(corpus, [{ _id: oldBag._id, table }])
+    );
+    const inverseTable = createInverseTable(oldBag.table);
+    const updatedRemCorpora = removeCorpora.map((corpus) =>
+      removeBagsFromCorpus(corpus, [bagID], [inverseTable])
+    );
+    const deltaTable = createDeltaTable(oldBag.table, tableDeepCopy);
+
+    const updatedUpdateCorpora = updateCorp.map((corpus) => {
+      const updatedTable = updateCorpusTable(corpus.table, deltaTable, bagID);
+      return { table: updatedTable };
+    });
+
+    await Promise.all([
+      updateBag(bagID, { textString, tokens, table, corpora: corporaOIDs }, db),
+      updateCorpora(toAdd, updatedAddCorpora, db),
+      updateCorpora(toRemove, updatedRemCorpora, db),
+      updateCorpora(unChanged, updatedUpdateCorpora, db),
+    ]);
+    res.sendStatus(200);
+  });
+};
+
 const updateText = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { bagID, filePath } = req.body;
@@ -151,4 +196,5 @@ module.exports = {
   updateText,
   removeCorpora,
   putCorpora,
+  putBagOfWords,
 };

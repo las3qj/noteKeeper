@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post("/", bagsOfWords.postBagOfWords);
 router.get("/", bagsOfWords.getBagsOfWords);
+router.put("/", bagsOfWords.putBagOfWords);
 
 router.put("/text", bagsOfWords.updateText);
 
