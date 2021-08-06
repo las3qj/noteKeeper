@@ -101,6 +101,17 @@ const putCorpus = async (req, res) => {
   });
 };
 
+const getBags = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const id = req.query.id;
+    const corpora = await getCorporaByID([id], db);
+    const bags = corpora[0].bags;
+    const bagArray = await getBagsByID(bags, db);
+    res.status(200);
+    res.json({ data: bagArray });
+  });
+};
+
 const addBags = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { corpusID, bagIDs } = req.body;
@@ -196,4 +207,5 @@ module.exports = {
   putCorpus,
   deleteCorpus,
   getCorpora,
+  getBags,
 };

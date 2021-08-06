@@ -12,5 +12,6 @@ router.delete("/", corpora.deleteCorpus);
 router.post("/bags", corpora.addBags);
 router.delete("/bags", corpora.removeBags);
 router.put("/bags", corpora.putBags);
+router.get("/bags", corpora.getBags);
 
 module.exports = { router };

@@ -14,5 +14,6 @@ router.put("/text", bagsOfWords.updateText);
 router.post("/corpora", bagsOfWords.addCorpora);
 router.delete("/corpora", bagsOfWords.removeCorpora);
 router.put("/corpora", bagsOfWords.putCorpora);
+router.get("/corpora", bagsOfWords.getCorpora);
 
 module.exports = { router };

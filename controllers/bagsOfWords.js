@@ -140,6 +140,17 @@ const updateText = async (req, res) => {
   });
 };
 
+const getCorpora = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const id = req.query.id;
+    const bags = await getBagsByID([id], db);
+    const corpora = bags[0].corpora;
+    const corporaArray = await getCorporaByID(corpora, db);
+    res.status(200);
+    res.json({ data: corporaArray });
+  });
+};
+
 const addCorpora = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { bagID, corporaIDs } = req.body;
@@ -219,4 +230,5 @@ module.exports = {
   putCorpora,
   putBagOfWords,
   deleteBagOfWords,
+  getCorpora,
 };
