@@ -1,7 +1,8 @@
 const axios = require("axios");
-const postBag = async (testFileLoc) => {
+const postBag = async (filePath, corporaIDsArray) => {
   const response = await axios.post("http://localhost:3000/bagOfWords", {
-    filePath: testFileLoc,
+    filePath,
+    corporaIDs: corporaIDsArray,
   });
   return response;
 };

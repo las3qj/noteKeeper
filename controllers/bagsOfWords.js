@@ -29,11 +29,12 @@ const {
 
 const postBagOfWords = async (req, res) => {
   controlWrapper(res, async (db) => {
-    const { filePath } = req.body;
+    const { filePath, corporaIDs } = req.body;
     const textString = parseTxtFile(filePath);
     const tokens = tokenize(textString);
     const table = createNoteTable(tokens);
-    const corpora = [];
+    const corporaOIDs = parseObjectIDArray(corporaIDs);
+    const corpora = corporaOIDs;
     await createBagOfWords(textString, tokens, table, corpora, db);
     res.sendStatus(200);
   });
