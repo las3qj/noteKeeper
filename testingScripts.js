@@ -29,6 +29,13 @@ const deleteBag = async (bagID) => {
   return response;
 };
 
+const getCorpora = async (idArray) => {
+  const response = await axios.get("http://localhost:3000/corpus", {
+    params: { ids: idArray },
+  });
+  return response;
+};
+
 const postCorpus = async (name, description, bagIDArray) => {
   const response = await axios.post("http://localhost:3000/corpus", {
     name,
@@ -197,6 +204,7 @@ module.exports = {
   deleteBag,
   postCorpus,
   putCorpus,
+  getCorpora,
   deleteCorpus,
   addBags,
   removeBags,

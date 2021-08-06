@@ -20,6 +20,15 @@ const {
 const { controlWrapper, getDifferences } = require("./../services/misc");
 const { getBagsAndCorporaByIDs } = require("./../services/common");
 
+const getCorpora = async (req, res) => {
+  controlWrapper(res, async (db) => {
+    const ids = req.query.ids;
+    const result = await getCorporaByID(ids, db);
+    res.status(200);
+    res.json({ data: result });
+  });
+};
+
 const postCorpus = async (req, res) => {
   controlWrapper(res, async (db) => {
     const { name, description, bagIDs } = req.body;
@@ -186,4 +195,5 @@ module.exports = {
   putBags,
   putCorpus,
   deleteCorpus,
+  getCorpora,
 };
