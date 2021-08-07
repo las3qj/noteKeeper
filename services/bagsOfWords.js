@@ -7,15 +7,11 @@ const {
 } = require("./../database/bagsOfWords");
 const { parseObjectIDArray, parseObjectID } = require("./misc");
 
-const createBagOfWords = async (textString, tokens, table, corpora, db) => {
-  const noteDoc = {
-    textString,
-    tokens,
-    table,
-    corpora,
-  };
-  const result = await postBagOfWords(noteDoc, db);
-  return result;
+const postBagsofWords = async (bagDocs, db) => {
+  const results = Promise.all(
+    bagDocs.map((bagDoc) => postBagOfWords(bagDoc, db))
+  );
+  return results;
 };
 
 /**
@@ -74,7 +70,7 @@ const updateBags = async (ids, updateAttributesArray, db) => {
 };
 
 module.exports = {
-  createBagOfWords,
+  postBagsofWords,
   getBagsByID,
   addCorporaToBag,
   removeCorporaFromBag,

@@ -7,7 +7,7 @@ const {
   updateCorpusTable,
 } = require("./../services/tabling");
 const {
-  createBagOfWords,
+  postBagsofWords,
   getBagsByID,
   updateBag,
   addCorporaToBag,
@@ -27,15 +27,25 @@ const {
   getCorporaByID,
 } = require("./../services/corpora");
 
-const postBagOfWords = async (req, res) => {
+const postBagsOfWords = async (req, res) => {
   controlWrapper(res, async (db) => {
-    const { filePath, corporaIDs } = req.body;
-    const textString = parseTxtFile(filePath);
-    const tokens = tokenize(textString);
-    const table = createNoteTable(tokens);
+    const { filePaths, corporaIDs } = req.body;
+    const textStringArray = filePaths.map((filePath) => parseTxtFile(filePath));
+    const tokensArray = textStringArray.map((textString) =>
+      tokenize(textString)
+    );
+    const tableArray = tokensArray.map((tokens) => createNoteTable(tokens));
     const corporaOIDs = parseObjectIDArray(corporaIDs);
     const corpora = corporaOIDs;
-    await createBagOfWords(textString, tokens, table, corpora, db);
+    const bagDocs = textStringArray.map((textString, index) => {
+      return {
+        textString,
+        tokens: tokensArray[index],
+        table: tableArray[index],
+        corpora,
+      };
+    });
+    await postBagsofWords(bagDocs, db);
     res.sendStatus(200);
   });
 };
@@ -223,7 +233,7 @@ const putCorpora = async (req, res) => {
 };
 
 module.exports = {
-  postBagOfWords,
+  postBagsOfWords,
   getBagsOfWords,
   addCorpora,
   updateText,

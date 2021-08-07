@@ -1,7 +1,19 @@
 const axios = require("axios");
-const postBag = async (filePath, corporaIDsArray) => {
+const fs = require("fs");
+const postBags = async (filePathArray, corporaIDsArray) => {
   const response = await axios.post("http://localhost:3000/bagOfWords", {
-    filePath,
+    filePaths: filePathArray,
+    corporaIDs: corporaIDsArray,
+  });
+  return response;
+};
+
+const postBagDir = async (folderPath, corporaIDsArray) => {
+  const filePaths = fs
+    .readdirSync(folderPath)
+    .map((file) => folderPath + "/" + file);
+  const response = await axios.post("http://localhost:3000/bagOfWords", {
+    filePaths,
     corporaIDs: corporaIDsArray,
   });
   return response;
@@ -213,7 +225,8 @@ const testACSuite = () => {
 };
 
 module.exports = {
-  postBag,
+  postBags,
+  postBagDir,
   putBag,
   getBags,
   deleteBag,

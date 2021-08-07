@@ -4,7 +4,7 @@ const bagsOfWords = require("./../controllers/bagsOfWords");
 
 const router = express.Router();
 
-router.post("/", bagsOfWords.postBagOfWords);
+router.post("/", bagsOfWords.postBagsOfWords);
 router.get("/", bagsOfWords.getBagsOfWords);
 router.put("/", bagsOfWords.putBagOfWords);
 router.delete("/", bagsOfWords.deleteBagOfWords);
