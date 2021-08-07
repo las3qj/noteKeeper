@@ -1,6 +1,6 @@
 const postCorpus = async (cDoc, db) => {
   const corpora = db.collection("corpora");
-  const result = await corpora.insertOne(cDoc);
+  const result = await corpora.insertOne({ ...cDoc, created: Date() });
   return result;
 };
 
@@ -19,7 +19,7 @@ const getCorpus = async (objectID, db) => {
 const putCorpus = async (objectID, updateAttributes, db) => {
   const corpora = db.collection("corpora");
   const filter = { _id: objectID };
-  const updateDoc = { $set: updateAttributes };
+  const updateDoc = { $set: { ...updateAttributes, updated: Date() } };
   const result = await corpora.updateOne(filter, updateDoc);
   return result;
 };

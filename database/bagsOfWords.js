@@ -1,6 +1,6 @@
 const postBagOfWords = async (bOWDoc, db) => {
   const bags = db.collection("bagsOfWords");
-  const result = await bags.insertOne(bOWDoc);
+  const result = await bags.insertOne({ ...bOWDoc, created: Date() });
   return result;
 };
 
@@ -19,7 +19,7 @@ const getBagOfWords = async (objectID, db) => {
 const putBagOfWords = async (objectID, updateAttributes, db) => {
   const bags = db.collection("bagsOfWords");
   const filter = { _id: objectID };
-  const updateDoc = { $set: updateAttributes };
+  const updateDoc = { $set: { ...updateAttributes, updated: Date() } };
   const result = await bags.updateOne(filter, updateDoc);
   return result;
 };
