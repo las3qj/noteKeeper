@@ -19,6 +19,7 @@ const {
 } = require("./../services/corpora");
 const { controlWrapper, getDifferences } = require("./../services/misc");
 const { getBagsAndCorporaByIDs } = require("./../services/common");
+const { tokenLengths, updateAnalyses } = require("./../services/textAnalysis");
 
 const getCorpora = async (req, res) => {
   controlWrapper(res, async (db) => {
@@ -190,14 +191,33 @@ const putBags = async (req, res) => {
   });
 };
 
-/*
-const putCorpus = async (req, res) => {
+const runTokenLengths = async (req, res) => {
   controlWrapper(res, async (db) => {
-    const { corpusID, updatedCorpus } = req.body;
-    await handlePutCorpus(corpusID, updatedCorpus, db);
+    const { corpusID, watchForUpdates } = req.body;
+    const corporaArray = await getCorporaByID([corpusID], db);
+    const corpus = corporaArray[0];
+    if (corpus.bags.length === 0) {
+      res.sendStatus(200);
+    }
+    const bagArray = await getBagsByID(corpus.bags, db);
+    const analysis = tokenLengths(corpus.table, corpus.bags);
+    const updatedCorpus = updateAnalyses(
+      corpus,
+      "tokenLengths",
+      analysis.corpus
+    );
+    updatedCorpus.analyses["tokenLengths"].watchForUpdates =
+      watchForUpdates === "true";
+    const updatedBags = bagArray.map((bag, index) =>
+      updateAnalyses(bag, "tokenLengths", analysis.byBag[index])
+    );
+    await Promise.all([
+      updateCorpus(corpusID, updatedCorpus, db),
+      updateBags(corpus.bags, updatedBags, db),
+    ]);
     res.sendStatus(200);
   });
-};*/
+};
 
 module.exports = {
   postCorpus,
@@ -208,4 +228,5 @@ module.exports = {
   deleteCorpus,
   getCorpora,
   getBags,
+  runTokenLengths,
 };

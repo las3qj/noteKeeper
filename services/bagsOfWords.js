@@ -8,10 +8,12 @@ const {
 const { parseObjectIDArray, parseObjectID } = require("./misc");
 
 const postBagsofWords = async (bagDocs, db) => {
-  const results = Promise.all(
+  const results = await Promise.all(
     bagDocs.map((bagDoc) => postBagOfWords(bagDoc, db))
   );
-  return results;
+  const ids = results.map((result) => result.insertedId);
+  console.log(ids);
+  return ids;
 };
 
 /**

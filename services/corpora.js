@@ -15,6 +15,7 @@ const createCorpus = async (name, description, ids, table, db) => {
     description,
     bags,
     table,
+    analyses: {},
   };
   const result = await postCorpus(corpusDoc, db);
   return result;

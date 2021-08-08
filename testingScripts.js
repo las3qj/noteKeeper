@@ -150,6 +150,17 @@ const putCorpora = async (bagID, corporaIDArray) => {
   return response;
 };
 
+const runTokenLengths = async (corpusID, watchForUpdates) => {
+  const response = await axios.post(
+    "http://localhost:3000/corpus/token-lengths",
+    {
+      corpusID,
+      watchForUpdates,
+    }
+  );
+  return response;
+};
+
 const testPBOWSuite = () => {
   const testFilePrefix = "./testFiles/";
   const testFiles = ["Baldwin1.txt", "Baldwin2.txt"];
@@ -243,4 +254,5 @@ module.exports = {
   removeCorpora,
   putCorpora,
   updateText,
+  runTokenLengths,
 };

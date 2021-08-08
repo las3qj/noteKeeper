@@ -36,16 +36,25 @@ const postBagsOfWords = async (req, res) => {
     );
     const tableArray = tokensArray.map((tokens) => createNoteTable(tokens));
     const corporaOIDs = parseObjectIDArray(corporaIDs);
-    const corpora = corporaOIDs;
     const bagDocs = textStringArray.map((textString, index) => {
       return {
         textString,
         tokens: tokensArray[index],
         table: tableArray[index],
-        corpora,
+        corpora: corporaOIDs,
+        analyses: {},
       };
     });
-    await postBagsofWords(bagDocs, db);
+    const postedIDs = await postBagsofWords(bagDocs, db);
+    const { bagArray, corporaArray } = await getBagsAndCorporaByIDs(
+      postedIDs,
+      corporaOIDs,
+      db
+    );
+    const updatedCorpora = corporaArray.map((corpus) =>
+      addBagsToCorpus(corpus, bagArray)
+    );
+    await updateCorpora(corporaOIDs, updatedCorpora, db);
     res.sendStatus(200);
   });
 };
