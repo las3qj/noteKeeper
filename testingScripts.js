@@ -150,14 +150,12 @@ const putCorpora = async (bagID, corporaIDArray) => {
   return response;
 };
 
-const runTokenLengths = async (corpusID, watchForUpdates) => {
-  const response = await axios.post(
-    "http://localhost:3000/corpus/token-lengths",
-    {
-      corpusID,
-      watchForUpdates,
-    }
-  );
+const analyze = async (corpusID, name, watchForUpdates) => {
+  const response = await axios.post("http://localhost:3000/corpus/analyze", {
+    corpusID,
+    name,
+    watchForUpdates,
+  });
   return response;
 };
 
@@ -254,5 +252,5 @@ module.exports = {
   removeCorpora,
   putCorpora,
   updateText,
-  runTokenLengths,
+  analyze,
 };

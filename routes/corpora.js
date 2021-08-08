@@ -14,6 +14,6 @@ router.delete("/bags", corpora.removeBags);
 router.put("/bags", corpora.putBags);
 router.get("/bags", corpora.getBags);
 
-router.post("/token-lengths", corpora.runTokenLengths);
+router.post("/analyze", corpora.runAnalysis);
 
 module.exports = { router };

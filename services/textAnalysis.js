@@ -1,4 +1,4 @@
-const tokenLengths = (table, bags) => {
+const tokenLengths = ({ table, bags }) => {
   const bagResults = {};
   const corpLengths = [];
   let corpTotal = 0;
@@ -52,6 +52,44 @@ const tokenLengths = (table, bags) => {
   return { corpus: lengthsOfCorp, byBag: lengthsByBag };
 };
 
+const lexicalVariety = ({ table, bags }) => {
+  const bagResults = {};
+  const corpusUniques = Object.keys(table).length;
+  let corpusTotal = 0;
+  for (token in table) {
+    corpusTotal += table[token].counts;
+    for (bagID in table[token].byDoc) {
+      let bagResult = bagResults[bagID];
+      const bagCount = table[token].byDoc[bagID];
+      if (bagResult === undefined) {
+        bagResult = { uniques: 0, total: 0 };
+      }
+
+      bagResult.uniques += 1;
+      bagResult.total += bagCount;
+      bagResults[bagID] = bagResult;
+    }
+  }
+  const corpusVariety = {
+    uniques: corpusUniques,
+    ratio: corpusUniques / corpusTotal,
+  };
+  const varietyByBag = bags.map((bagOID) => {
+    const bagResult = bagResults[bagOID.toString()];
+    return {
+      uniques: bagResult.uniques,
+      ratio: bagResult.uniques / bagResult.total,
+    };
+  });
+  return { corpus: corpusVariety, byBag: varietyByBag };
+};
+
+const getAnalysisFuncts = (stringArray) => {
+  const map = { tokenLengths: tokenLengths, lexicalVariety: lexicalVariety };
+  const functArray = stringArray.map((string) => map[string]);
+  return functArray;
+};
+
 const updateAnalyses = (doc, name, analysis) => {
   let updatedDoc = {};
   if (doc.analyses[name] === undefined) {
@@ -79,4 +117,6 @@ const updateAnalyses = (doc, name, analysis) => {
 module.exports = {
   tokenLengths,
   updateAnalyses,
+  lexicalVariety,
+  getAnalysisFuncts,
 };
