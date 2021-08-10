@@ -7,6 +7,7 @@ const {
 } = require("./../database/corpora");
 const { parseObjectIDArray, parseObjectID } = require("./misc");
 const { updateCorpusTable, addToCorpusTable } = require("./tabling");
+const { updateAnalyses } = require("./textAnalysis");
 
 const createCorpus = async (name, description, ids, table, db) => {
   const bags = parseObjectIDArray(ids);
@@ -81,9 +82,12 @@ const putBagsInCorpus = (
   return { table: newTable, bags };
 };
 
-const updateCorpus = async (id, updateAttributes, db) => {
+const updateCorpus = async (id, updateAttributes, db, appendDate = true) => {
   const objectID = parseObjectID(id);
-  const result = await putCorpus(objectID, updateAttributes, db);
+  const doc = appendDate
+    ? { ...updateAttributes, updated: Date() }
+    : updateAttributes;
+  const result = await putCorpus(objectID, doc, db);
   return result;
 };
 
@@ -92,6 +96,27 @@ const updateCorpora = async (ids, updateAttributesArray, db) => {
     ids.map((id, index) => updateCorpus(id, updateAttributesArray[index], db))
   );
   return results;
+};
+
+const updateWatchedAnalyses = (
+  corporaArray,
+  updatedBagsTables,
+  namesArrays,
+  analysesResults
+) => {
+  const updatedCorpora = analysesResults.map((analyses, index) => {
+    const corpusResults = analyses.map((analysis) => analysis.corpus);
+    const names = namesArrays[index];
+    const updatedCorpus = {
+      ...updatedBagsTables[index],
+      ...updateAnalyses(corporaArray[index], names, corpusResults),
+    };
+    names.forEach((aName) => {
+      updatedCorpus.analyses[aName].watchForUpdates = true;
+    });
+    return updatedCorpus;
+  });
+  return updatedCorpora;
 };
 
 module.exports = {
@@ -103,4 +128,5 @@ module.exports = {
   removeBagsFromCorpus,
   putBagsInCorpus,
   deleteCorpusByID,
+  updateWatchedAnalyses,
 };

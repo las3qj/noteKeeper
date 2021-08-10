@@ -6,13 +6,13 @@ const {
   deleteBagOfWords,
 } = require("./../database/bagsOfWords");
 const { parseObjectIDArray, parseObjectID } = require("./misc");
+const { updateAnalyses } = require("./textAnalysis");
 
 const postBagsofWords = async (bagDocs, db) => {
   const results = await Promise.all(
     bagDocs.map((bagDoc) => postBagOfWords(bagDoc, db))
   );
   const ids = results.map((result) => result.insertedId);
-  console.log(ids);
   return ids;
 };
 
@@ -58,17 +58,58 @@ const removeCorporaFromBag = (bag, corporaIDs) => {
   return { corpora: updatedCorpora };
 };
 
-const updateBag = async (id, updateAttributes, db) => {
+const updateBag = async (id, updateAttributes, db, appendDate = true) => {
   const objectID = parseObjectID(id);
-  const result = await putBagOfWords(objectID, updateAttributes, db);
+  const doc = appendDate
+    ? { ...updateAttributes, updated: Date() }
+    : updateAttributes;
+  const result = await putBagOfWords(objectID, doc, db);
   return result;
 };
 
-const updateBags = async (ids, updateAttributesArray, db) => {
+const updateBags = async (
+  ids,
+  updateAttributesArray,
+  db,
+  appendDate = true
+) => {
   const result = await Promise.all(
-    ids.map((id, index) => updateBag(id, updateAttributesArray[index], db))
+    ids.map((id, index) =>
+      updateBag(id, updateAttributesArray[index], db, appendDate)
+    )
   );
   return result;
+};
+
+const updateBagsAnalyses = (bagsArray, names, byBag) => {
+  const updatedBagMap = {};
+  bagsArray.forEach(({ _id, analyses, updated, created }) => {
+    const lastEdited =
+      updated !== undefined ? Date.parse(updated) : Date.parse(created);
+    const namesArray = [];
+    const analysesArray = [];
+    names.forEach((name, index) => {
+      if (
+        analyses[name] === undefined ||
+        lastEdited >
+          Date.parse(
+            analyses[name].runs[analyses[name].runs.length - 1].timestamp
+          )
+      ) {
+        namesArray.push(name);
+        analysesArray.push(byBag[index][_id.toString()]);
+      }
+    });
+    if (namesArray.length > 0) {
+      const updatedBag = updateAnalyses(
+        { analyses },
+        namesArray,
+        analysesArray
+      );
+      updatedBagMap[_id.toString()] = updatedBag;
+    }
+  });
+  return updatedBagMap;
 };
 
 module.exports = {
@@ -79,4 +120,5 @@ module.exports = {
   updateBag,
   updateBags,
   deleteBagByID,
+  updateBagsAnalyses,
 };

@@ -3,6 +3,7 @@ const {
   addCorporaToBag,
   updateBags,
   removeCorporaFromBag,
+  updateBagsAnalyses,
 } = require("./../services/bagsOfWords");
 const {
   createCorpusTable,
@@ -20,10 +21,10 @@ const {
 const { controlWrapper, getDifferences } = require("./../services/misc");
 const { getBagsAndCorporaByIDs } = require("./../services/common");
 const {
-  tokenLengths,
-  updateAnalyses,
-  lexicalVariety,
+  updateAnalysis,
   getAnalysisFuncts,
+  getWatchedAnalyses,
+  updateAnalyses,
 } = require("./../services/textAnalysis");
 
 const getCorpora = async (req, res) => {
@@ -50,7 +51,7 @@ const postCorpus = async (req, res) => {
       const updatedBags = bagArray.map((bag) =>
         addCorporaToBag(bag, [{ _id: corpusID }])
       );
-      await updateBags(bagIDs, updatedBags, db);
+      await updateBags(bagIDs, updatedBags, db, false);
     }
     res.sendStatus(200);
   });
@@ -66,7 +67,7 @@ const deleteCorpus = async (req, res) => {
       removeCorporaFromBag(bag, [corpusID])
     );
     await Promise.all([
-      updateBags(bagIDs, updatedBags, db),
+      updateBags(bagIDs, updatedBags, db, false),
       deleteCorpusByID(corpusID, db),
     ]);
     res.sendStatus(200);
@@ -97,11 +98,38 @@ const putCorpus = async (req, res) => {
       toRemove,
       inverseTables
     );
-    const updatedCorpus = addBagsToCorpus(corpusAfterRem, bagsToAdd);
+    const updatedBagsTable = addBagsToCorpus(corpusAfterRem, bagsToAdd);
+    const analysesToRun = getWatchedAnalyses(oldCorpus);
+    const analysesResults = analysesToRun.functs.map((analysis) =>
+      analysis(updatedBagsTable)
+    );
+    const corpusResults = analysesResults.map((analysis) => analysis.corpus);
+    const updatedAnalyses = updateAnalyses(
+      oldCorpus,
+      analysesToRun.names,
+      corpusResults
+    );
+    analysesToRun.names.forEach((name) => {
+      updatedAnalyses.analyses[name].watchForUpdates = true;
+    });
+    const updatedCorpus = { ...updatedBagsTable, ...updatedAnalyses };
+
+    const bagResults = analysesResults.map((analysis) => analysis.byBag);
+    const addBagAnalysesMap = updateBagsAnalyses(
+      bagsToAdd,
+      analysesToRun.names,
+      bagResults
+    );
+    toAdd.map((id, index) => {
+      const addBagAnalyses = addBagAnalysesMap[id];
+      if (addBagAnalysesMap[id] !== undefined) {
+        updatedAddBags[index] = { ...updatedAddBags[index], ...addBagAnalyses };
+      }
+    });
     await Promise.all([
       updateCorpus(corpusID, { ...updatedCorpus, name, description }, db),
-      updateBags(toAdd, updatedAddBags, db),
-      updateBags(toRemove, updatedRemBags, db),
+      updateBags(toAdd, updatedAddBags, db, false),
+      updateBags(toRemove, updatedRemBags, db, false),
     ]);
     res.sendStatus(200);
   });
@@ -126,11 +154,45 @@ const addBags = async (req, res) => {
       [corpusID],
       db
     );
-    const newCorpus = addBagsToCorpus(corporaArray[0], bagArray);
-    const newBags = bagArray.map((bag) => addCorporaToBag(bag, corporaArray));
+    const corpus = corporaArray[0];
+    const updatedBagsTable = addBagsToCorpus(corpus, bagArray);
+    const updatedBags = bagArray.map((bag) =>
+      addCorporaToBag(bag, corporaArray)
+    );
+
+    const analysesToRun = getWatchedAnalyses(corpus);
+    const analysesResults = analysesToRun.functs.map((analysis) =>
+      analysis(updatedBagsTable)
+    );
+    const corpusResults = analysesResults.map((analysis) => analysis.corpus);
+    const bagResults = analysesResults.map((analysis) => analysis.byBag);
+    const updatedCorpAnalyses = updateAnalyses(
+      corpus,
+      analysesToRun.names,
+      corpusResults
+    );
+    analysesToRun.names.forEach((name) => {
+      updatedCorpAnalyses.analyses[name].watchForUpdates = true;
+    });
+    const updatedCorpus = { ...updatedBagsTable, ...updatedCorpAnalyses };
+
+    const updatedBagMap = updateBagsAnalyses(
+      bagArray,
+      analysesToRun.names,
+      bagResults
+    );
+    bagIDs.forEach((bagID, index) => {
+      const updatedAnalysis = updatedBagMap[bagID];
+      if (updatedAnalysis !== undefined) {
+        updatedBags[index] = {
+          ...updatedBags[index],
+          ...updatedAnalysis,
+        };
+      }
+    });
     await Promise.all([
-      updateCorpus(corpusID, newCorpus, db),
-      updateBags(bagIDs, newBags, db),
+      updateCorpus(corpusID, updatedCorpus, db),
+      updateBags(bagIDs, updatedBags, db, false),
     ]);
     res.sendStatus(200);
   });
@@ -151,9 +213,27 @@ const removeBags = async (req, res) => {
       updatedBags.push(removeCorporaFromBag(bag, [corpusID]));
       inverseTables.push(createInverseTable(bag.table));
     }
-    const updatedCorpus = removeBagsFromCorpus(corpus, bagIDs, inverseTables);
+    const updatedBagsTable = removeBagsFromCorpus(
+      corpus,
+      bagIDs,
+      inverseTables
+    );
+    const analysesToRun = getWatchedAnalyses(corpus);
+    const analysesResults = analysesToRun.functs.map((analysis) =>
+      analysis(updatedBagsTable)
+    );
+    const corpusResults = analysesResults.map((analysis) => analysis.corpus);
+    const updatedAnalyses = updateAnalyses(
+      corpus,
+      analysesToRun.names,
+      corpusResults
+    );
+    analysesToRun.names.forEach((name) => {
+      updatedAnalyses.analyses[name].watchForUpdates = true;
+    });
+    const updatedCorpus = { ...updatedBagsTable, ...updatedAnalyses };
     await Promise.all([
-      updateBags(bagIDs, updatedBags, db),
+      updateBags(bagIDs, updatedBags, db, false),
       updateCorpus(corpusID, updatedCorpus, db),
     ]);
     res.sendStatus(200);
@@ -174,23 +254,50 @@ const putBags = async (req, res) => {
       createInverseTable(bag.table)
     );
 
-    const updatedCorpus = putBagsInCorpus(
+    const updatedBagsTable = putBagsInCorpus(
       corpus,
       addBags,
       inverseTables,
       toRemove,
       bagIDs
     );
-    const updatedAddBags = addBags.map((bag) =>
-      addCorporaToBag(bag, corporaArray)
+    const analysesToRun = getWatchedAnalyses(corpus);
+    const analysesResults = analysesToRun.functs.map((analysis) =>
+      analysis(updatedBagsTable)
     );
+    const corpusResults = analysesResults.map((analysis) => analysis.corpus);
+    const updatedAnalyses = updateAnalyses(
+      corpus,
+      analysesToRun.names,
+      corpusResults
+    );
+    analysesToRun.names.forEach((name) => {
+      updatedAnalyses.analyses[name].watchForUpdates = true;
+    });
+    const updatedCorpus = { ...updatedBagsTable, ...updatedAnalyses };
+
     const updatedRemBags = removeBags.map((bag) =>
       removeCorporaFromBag(bag, [corpusID])
     );
+    const updatedAddBags = addBags.map((bag) =>
+      addCorporaToBag(bag, corporaArray)
+    );
+    const bagResults = analysesResults.map((analysis) => analysis.byBag);
+    const addBagAnalysesMap = updateBagsAnalyses(
+      addBags,
+      analysesToRun.names,
+      bagResults
+    );
+    toAdd.map((id, index) => {
+      const addBagAnalyses = addBagAnalysesMap[id];
+      if (addBagAnalysesMap[id] !== undefined) {
+        updatedAddBags[index] = { ...updatedAddBags[index], ...addBagAnalyses };
+      }
+    });
     await Promise.all([
       updateCorpus(corpusID, updatedCorpus, db),
-      updateBags(toAdd, updatedAddBags, db),
-      updateBags(toRemove, updatedRemBags, db),
+      updateBags(toAdd, updatedAddBags, db, false),
+      updateBags(toRemove, updatedRemBags, db, false),
     ]);
     res.sendStatus(200);
   });
@@ -201,20 +308,47 @@ const runAnalysis = async (req, res) => {
     const { corpusID, name, watchForUpdates } = req.body;
     const corporaArray = await getCorporaByID([corpusID], db);
     const corpus = corporaArray[0];
-    if (corpus.bags.length === 0) {
+    const lastEdited =
+      corpus.updated !== undefined ? corpus.updated : corpus.created;
+    // If no bags or not updated since last analysis, don't run (covers watchingForUpdates)
+    if (
+      corpus.bags.length === 0 ||
+      (corpus.analyses[name] !== undefined &&
+        Date.parse(
+          corpus.analyses[name].runs[corpus.analyses[name].runs.length - 1]
+            .timestamp
+        ) > Date.parse(lastEdited))
+    ) {
+      const updatedCorpus = { analyses: { [name]: {} } };
+      updatedCorpus.analyses[name] = {
+        runs:
+          corpus.analyses[name] === undefined ? [] : corpus.analyses[name].runs,
+        watchForUpdates: watchForUpdates === "true",
+      };
+
+      await updateCorpus(corpusID, updatedCorpus, db, false);
       res.sendStatus(200);
+      return;
     }
+
     const bagArray = await getBagsByID(corpus.bags, db);
     const functions = getAnalysisFuncts([name]);
     const analysis = functions[0](corpus);
-    const updatedCorpus = updateAnalyses(corpus, name, analysis.corpus);
+    const updatedCorpus = updateAnalysis(corpus, name, analysis.corpus);
     updatedCorpus.analyses[name].watchForUpdates = watchForUpdates === "true";
-    const updatedBags = bagArray.map((bag, index) =>
-      updateAnalyses(bag, name, analysis.byBag[index])
+    const updatedBagMap = updateBagsAnalyses(
+      bagArray,
+      [name],
+      [analysis.byBag]
     );
     await Promise.all([
-      updateCorpus(corpusID, updatedCorpus, db),
-      updateBags(corpus.bags, updatedBags, db),
+      updateCorpus(corpusID, updatedCorpus, db, false),
+      updateBags(
+        Object.keys(updatedBagMap),
+        Object.values(updatedBagMap),
+        db,
+        false
+      ),
     ]);
     res.sendStatus(200);
   });

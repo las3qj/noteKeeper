@@ -19,7 +19,7 @@ const getBagOfWords = async (objectID, db) => {
 const putBagOfWords = async (objectID, updateAttributes, db) => {
   const bags = db.collection("bagsOfWords");
   const filter = { _id: objectID };
-  const updateDoc = { $set: { ...updateAttributes, updated: Date() } };
+  const updateDoc = { $set: updateAttributes };
   const result = await bags.updateOne(filter, updateDoc);
   return result;
 };

@@ -1,4 +1,4 @@
-const tokenLengths = ({ table, bags }) => {
+const tokenLengths = ({ table }) => {
   const bagResults = {};
   const corpLengths = [];
   let corpTotal = 0;
@@ -36,23 +36,23 @@ const tokenLengths = ({ table, bags }) => {
   }
   const corpAverage = corpTotal / corpTokenCount;
   const lengthsOfCorp = { lengths: corpLengths, average: corpAverage };
-  const lengthsByBag = bags.map((bagOID) => {
-    const bagResult = bagResults[bagOID.toString()];
-    const bagLengths = bagResult.lengths;
+  const lengthsByBag = {};
+  for (id in bagResults) {
+    const bagLengths = bagResults[id].lengths;
     for (let i = 0; i < bagLengths.length; i++) {
       if (bagLengths[i] === undefined) {
         bagLengths[i] = 0;
       }
     }
-    return {
+    lengthsByBag[id] = {
       lengths: bagLengths,
-      average: bagResult.total / bagResult.tokenCount,
+      average: bagResults[id].total / bagResults[id].tokenCount,
     };
-  });
+  }
   return { corpus: lengthsOfCorp, byBag: lengthsByBag };
 };
 
-const lexicalVariety = ({ table, bags }) => {
+const lexicalVariety = ({ table }) => {
   const bagResults = {};
   const corpusUniques = Object.keys(table).length;
   let corpusTotal = 0;
@@ -74,15 +74,39 @@ const lexicalVariety = ({ table, bags }) => {
     uniques: corpusUniques,
     ratio: corpusUniques / corpusTotal,
   };
-  const varietyByBag = bags.map((bagOID) => {
-    const bagResult = bagResults[bagOID.toString()];
-    return {
-      uniques: bagResult.uniques,
-      ratio: bagResult.uniques / bagResult.total,
+  const varietyByBag = {};
+  for (id in bagResults) {
+    varietyByBag[id] = {
+      uniques: bagResults[id].uniques,
+      ratio: bagResults[id].uniques / bagResults[id].total,
     };
-  });
+  }
   return { corpus: corpusVariety, byBag: varietyByBag };
 };
+
+const getWatchedAnalyses = ({ analyses }) => {
+  const analysisStrings = [];
+  for (analysis in analyses) {
+    if (analyses[analysis].watchForUpdates) {
+      analysisStrings.push(analysis);
+    }
+  }
+  const analysisFuncts = getAnalysisFuncts(analysisStrings);
+  return { names: analysisStrings, functs: analysisFuncts };
+};
+
+/*
+const getNeedsAnalysis = ({ analysis, updated, created }) => {
+  if (analysis === undefined) {
+    return true;
+  }
+  const lastRun = analysis.runs[-1];
+  const lastEdited = updated !== undefined ? updated : created;
+  if (Date.parse(lastRun.timestamp) < Date.parse(lastEdited)) {
+    return true;
+  }
+  return false;
+};*/
 
 const getAnalysisFuncts = (stringArray) => {
   const map = { tokenLengths: tokenLengths, lexicalVariety: lexicalVariety };
@@ -90,23 +114,21 @@ const getAnalysisFuncts = (stringArray) => {
   return functArray;
 };
 
-const updateAnalyses = (doc, name, analysis) => {
+const updateAnalysis = ({ analyses }, name, analysis) => {
   let updatedDoc = {};
-  if (doc.analyses[name] === undefined) {
+  if (analyses[name] === undefined) {
     updatedDoc = {
       analyses: {
-        ...doc.analyses,
+        ...analyses,
         [name]: { runs: [{ analysis, timestamp: Date() }] },
       },
     };
   } else {
     updatedDoc = {
       analyses: {
-        ...doc.analyses,
+        ...analyses,
         [name]: {
-          runs: doc.analyses[name].runs.concat([
-            { analysis, timestamp: Date() },
-          ]),
+          runs: analyses[name].runs.concat([{ analysis, timestamp: Date() }]),
         },
       },
     };
@@ -114,9 +136,72 @@ const updateAnalyses = (doc, name, analysis) => {
   return updatedDoc;
 };
 
+const updateAnalyses = (doc, names, analyses) => {
+  let updatedDoc = doc;
+  analyses.forEach((analysis, index) => {
+    updatedDoc = updateAnalysis(updatedDoc, names[index], analysis);
+  });
+  return updatedDoc;
+};
+
+const consolidateByBags = (namesArrays, byBagsArrays, bagsToWatch) => {
+  const masterMap = {};
+  namesArrays.forEach((namesArray, corpIndex) => {
+    const byBagsArray = byBagsArrays[corpIndex];
+    namesArray.forEach((name, nameIndex) => {
+      let masterEntry = masterMap[name];
+      if (masterEntry === undefined) {
+        const byBags = byBagsArray[nameIndex];
+        masterEntry = {};
+        for (bagID of bagsToWatch) {
+          masterEntry[bagID] = byBags[bagID];
+        }
+      }
+      masterMap[name] = masterEntry;
+    });
+  });
+  const names = [];
+  const byBags = [];
+  for (nameID in masterMap) {
+    names.push(nameID);
+    byBags.push(masterMap[nameID]);
+  }
+  return { names, byBags };
+};
+
+/*
+const updateWatchedAnalyses = (updatedCorpus, analysesResults) => {
+  const analysis = functions[0](corpus);
+  const updatedCorpus = updateAnalyses(corpus, name, analysis.corpus);
+  updatedCorpus.analyses[name].watchForUpdates = watchForUpdates === "true";
+  const bagsToUpdate = bagArray.filter((bag) => {
+    if (bag.analyses[name] === undefined) {
+      return true;
+    }
+    const lastRan =
+      bag.analyses[name].runs[bag.analyses[name].runs.length - 1].timestamp;
+    const lastEdited = bag.updated !== undefined ? bag.updated : bag.created;
+    if (Date.parse(lastRan) < Date.parse(lastEdited)) {
+      return true;
+    }
+    return false;
+  });
+  const updatedBags = bagsToUpdate.map((bag, index) =>
+    updateAnalyses(bag, name, analysis.byBag[index])
+  );
+  await Promise.all([
+    updateCorpus(corpusID, updatedCorpus, db, false),
+    updateBags(corpus.bags, updatedBags, db, false),
+  ]);
+  res.sendStatus(200);
+};*/
+
 module.exports = {
   tokenLengths,
+  updateAnalysis,
   updateAnalyses,
   lexicalVariety,
   getAnalysisFuncts,
+  getWatchedAnalyses,
+  consolidateByBags,
 };
