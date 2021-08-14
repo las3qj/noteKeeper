@@ -109,14 +109,65 @@ const updateWatchedAnalyses = (
     const names = namesArrays[index];
     const updatedCorpus = {
       ...updatedBagsTables[index],
-      ...updateAnalyses(corporaArray[index], names, corpusResults),
+      ...updateAnalyses(corporaArray[index], names, corpusResults, "true"),
     };
-    names.forEach((aName) => {
-      updatedCorpus.analyses[aName].watchForUpdates = true;
-    });
     return updatedCorpus;
   });
   return updatedCorpora;
+};
+
+const checkIfAnalysesRun = (
+  corpus,
+  name,
+  lastEdited,
+  watchForUpdates,
+  params
+) => {
+  if (name === "collocates") {
+    if (
+      corpus.bags.length === 0 ||
+      (corpus.analyses[name] !== undefined &&
+        corpus.analyses[name][params.title] !== undefined &&
+        Date.parse(
+          corpus.analyses[name][params.title].runs[
+            corpus.analyses[name][params.title].runs.length - 1
+          ].timestamp
+        )) > Date.parse(lastEdited)
+    ) {
+      const updatedCorpus = { analyses: { [name]: {}, ...corpus.analyses } };
+      if (
+        corpus.analyses[name] === undefined ||
+        corpus.analyses[name][params.title] === undefined
+      ) {
+        updatedCorpus.analyses[name][params.title] = {
+          terms: params.terms,
+          range: params.range,
+          stopWords: params.stopWords,
+          runs: [],
+        };
+      }
+      updatedCorpus.analyses[name][params.title].watchForUpdates =
+        watchForUpdates === "true";
+      return updatedCorpus;
+    }
+  } else {
+    if (
+      corpus.bags.length === 0 ||
+      (corpus.analyses[name] !== undefined &&
+        Date.parse(
+          corpus.analyses[name].runs[corpus.analyses[name].runs.length - 1]
+            .timestamp
+        )) > Date.parse(lastEdited)
+    ) {
+      const updatedCorpus = { analyses: { [name]: {}, ...corpus.analyses } };
+      if (corpus.analyses[name] === undefined) {
+        updatedCorpus.analyses[name] = { runs: [] };
+      }
+      updatedCorpus.analyses[name].watchForUpdates = watchForUpdates === "true";
+      return updatedCorpus;
+    }
+  }
+  return undefined;
 };
 
 module.exports = {
@@ -129,4 +180,5 @@ module.exports = {
   putBagsInCorpus,
   deleteCorpusByID,
   updateWatchedAnalyses,
+  checkIfAnalysesRun,
 };

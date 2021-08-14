@@ -84,62 +84,264 @@ const lexicalVariety = ({ table }) => {
   return { corpus: corpusVariety, byBag: varietyByBag };
 };
 
+const collocates = ({ table }, bags, { title, terms, stopWords, range }) => {
+  if (range === undefined) {
+    range = 4;
+  }
+  const bagsCollocates = {};
+  const corpusCollocates = {};
+  // create bagMap for simpler indexing
+  const bagMap = {};
+  bags.forEach((bag) => {
+    bagMap[bag._id.toString()] = bag;
+    bagsCollocates[bag._id.toString()] = { [title]: {} };
+  });
+  // create stopWords map for simple indexing
+  const stopWordsMap = {};
+  stopWords.forEach((stopWord) => {
+    stopWordsMap[stopWord] = true;
+  });
+  terms.forEach((targetWord) => {
+    if (table[targetWord] === undefined) {
+      return;
+    }
+    const bagsToExamine = Object.keys(table[targetWord].byDoc);
+    const tokenTotalObject = {};
+    bagsToExamine.forEach((bagOID) => {
+      const tokenObject = {};
+      const bag = bagMap[bagOID.toString()];
+      const indices = bag.table[targetWord].occurences;
+      const tokenArray = bag.tokens;
+      indices.forEach((index) => {
+        let bound = index + range;
+        for (let i = index + 1; i <= bound; i++) {
+          if (i >= tokenArray.length) {
+            break;
+          }
+          const token = tokenArray[i];
+          if (stopWordsMap[token] === undefined) {
+            if (tokenObject[token] === undefined) {
+              tokenObject[token] = 1;
+            } else {
+              tokenObject[token] += 1;
+            }
+            if (tokenTotalObject[token] === undefined) {
+              tokenTotalObject[token] = 1;
+            } else {
+              tokenTotalObject[token] += 1;
+            }
+          } else {
+            bound += 1;
+          }
+        }
+        bound = index - range;
+        for (let j = index - 1; j >= bound; j--) {
+          if (j < 0) {
+            break;
+          }
+          const token = tokenArray[j];
+          if (stopWordsMap[token] === undefined) {
+            if (tokenObject[token] === undefined) {
+              tokenObject[token] = 1;
+            } else {
+              tokenObject[token] += 1;
+            }
+            if (tokenTotalObject[token] === undefined) {
+              tokenTotalObject[token] = 1;
+            } else {
+              tokenTotalObject[token] += 1;
+            }
+          } else {
+            bound -= 1;
+          }
+        }
+      });
+      bagsCollocates[bagOID.toString()][title][targetWord] = tokenObject;
+    });
+    corpusCollocates[targetWord] = tokenTotalObject;
+  });
+
+  return { corpus: { [title]: corpusCollocates }, byBag: bagsCollocates };
+};
+
+const runWatchedCollocates = (corpus, bagArray, paramsArray) => {
+  const results = paramsArray.map((params) =>
+    collocates(corpus, bagArray, params)
+  );
+  let corpusRes = {};
+  const byBag = {};
+  results.forEach((result) => {
+    corpusRes = { ...corpusRes, ...result.corpus };
+    for (id in result.byBag) {
+      let bagRes = byBag[id];
+      if (bagRes === undefined) {
+        bagRes = {};
+      }
+      bagRes = { ...bagRes, ...result.byBag[id] };
+      byBag[id] = bagRes;
+    }
+  });
+  return { corpus: corpusRes, byBag };
+};
+
 const getWatchedAnalyses = ({ analyses }) => {
   const analysisStrings = [];
+  const analysisFuncts = [];
   for (analysis in analyses) {
-    if (analyses[analysis].watchForUpdates) {
+    if (analysis === "collocates") {
+      const paramsArray = getWatchedCollocates(analyses[analysis]);
+      if (paramsArray.length > 0) {
+        analysisStrings.push(analysis);
+        analysisFuncts.push((corpus, bagArray) =>
+          runWatchedCollocates(corpus, bagArray, paramsArray)
+        );
+      }
+    } else if (analyses[analysis].watchForUpdates) {
       analysisStrings.push(analysis);
+      analysisFuncts.push(getAnalysisFunct(analysis));
     }
   }
-  const analysisFuncts = getAnalysisFuncts(analysisStrings);
   return { names: analysisStrings, functs: analysisFuncts };
 };
 
-/*
-const getNeedsAnalysis = ({ analysis, updated, created }) => {
-  if (analysis === undefined) {
-    return true;
+const getWatchedCollocates = (collocates) => {
+  const paramsArray = [];
+  for (title in collocates) {
+    if (collocates[title].watchForUpdates) {
+      paramsArray.push({
+        title: title,
+        terms: collocates[title].terms,
+        stopWords: collocates[title].stopWords,
+        range: collocates[title].range,
+      });
+    }
   }
-  const lastRun = analysis.runs[-1];
-  const lastEdited = updated !== undefined ? updated : created;
-  if (Date.parse(lastRun.timestamp) < Date.parse(lastEdited)) {
-    return true;
-  }
-  return false;
-};*/
+  return paramsArray;
+};
+
+const getAnalysisFunct = (string) => {
+  const map = {
+    tokenLengths: tokenLengths,
+    lexicalVariety: lexicalVariety,
+    collocates: collocates,
+  };
+  return map[string];
+};
 
 const getAnalysisFuncts = (stringArray) => {
-  const map = { tokenLengths: tokenLengths, lexicalVariety: lexicalVariety };
-  const functArray = stringArray.map((string) => map[string]);
+  const functArray = stringArray.map((string) => getAnalysisFunct(string));
   return functArray;
 };
 
-const updateAnalysis = ({ analyses }, name, analysis) => {
-  let updatedDoc = {};
-  if (analyses[name] === undefined) {
-    updatedDoc = {
-      analyses: {
-        ...analyses,
-        [name]: { runs: [{ analysis, timestamp: Date() }] },
-      },
-    };
+const updateCorpusCollocates = (
+  collocates,
+  analysis,
+  watchForUpdates,
+  paramsArray
+) => {
+  let updatedColloc = collocates;
+  if (updatedColloc === undefined) {
+    updatedColloc = {};
+  }
+  if (paramsArray !== undefined) {
+    paramsArray.forEach((params) => {
+      if (updatedColloc[params.title] === undefined) {
+        updatedColloc[params.title] = {
+          terms: params.terms,
+          range: params.range,
+          stopWords: params.stopWords,
+          runs: [],
+        };
+      }
+      updatedColloc[params.title].watchForUpdates = watchForUpdates === "true";
+    });
+  }
+  const titles = Object.keys(analysis);
+  titles.forEach((title) => {
+    updatedColloc[title].runs.push({
+      analysis: analysis[title],
+      timestamp: Date(),
+    });
+  });
+
+  return updatedColloc;
+};
+
+const updateBagCollocates = (collocates, analysis) => {
+  let updatedColloc = collocates;
+  if (updatedColloc === undefined) {
+    updatedColloc = {};
+  }
+  for (title in analysis) {
+    if (updatedColloc[title] === undefined) {
+      updatedColloc[title] = { runs: [] };
+    }
+    updatedColloc[title].runs.push({
+      analysis: analysis[title],
+      timestamp: Date(),
+    });
+  }
+  return updatedColloc;
+};
+
+const updateAnalysis = (
+  { analyses },
+  name,
+  analysis,
+  watchForUpdates,
+  paramsArray
+) => {
+  let updatedDoc = { analyses };
+  console.log(name);
+  console.log(watchForUpdates);
+  if (name === "collocates") {
+    let collocates = {};
+    if (watchForUpdates !== undefined) {
+      collocates = updateCorpusCollocates(
+        analyses.collocates,
+        analysis,
+        watchForUpdates,
+        paramsArray
+      );
+    } else {
+      collocates = updateBagCollocates(analyses.collocates, analysis);
+    }
+    updatedDoc.analyses.collocates = collocates;
   } else {
-    updatedDoc = {
-      analyses: {
-        ...analyses,
-        [name]: {
-          runs: analyses[name].runs.concat([{ analysis, timestamp: Date() }]),
-        },
-      },
-    };
+    if (analyses[name] === undefined) {
+      updatedDoc.analyses[name] = { runs: [{ analysis, timestamp: Date() }] };
+    } else {
+      updatedDoc.analyses[name].runs = analyses[name].runs.concat([
+        { analysis, timestamp: Date() },
+      ]);
+    }
+    if (watchForUpdates !== undefined) {
+      console.log(name);
+      console.log("watchForUpdates");
+      console.log(watchForUpdates);
+      console.log(typeof watchForUpdates);
+      updatedDoc.analyses[name].watchForUpdates = watchForUpdates === "true";
+    }
   }
   return updatedDoc;
 };
 
-const updateAnalyses = (doc, names, analyses) => {
-  let updatedDoc = doc;
-  analyses.forEach((analysis, index) => {
-    updatedDoc = updateAnalysis(updatedDoc, names[index], analysis);
+const updateAnalyses = (
+  { analyses },
+  names,
+  analysesRes,
+  watchForUpdates,
+  paramsArray
+) => {
+  let updatedDoc = { analyses };
+  analysesRes.forEach((analysis, index) => {
+    updatedDoc = updateAnalysis(
+      updatedDoc,
+      names[index],
+      analysis,
+      watchForUpdates,
+      paramsArray
+    );
   });
   return updatedDoc;
 };
@@ -201,6 +403,8 @@ module.exports = {
   updateAnalysis,
   updateAnalyses,
   lexicalVariety,
+  collocates,
+  getAnalysisFunct,
   getAnalysisFuncts,
   getWatchedAnalyses,
   consolidateByBags,

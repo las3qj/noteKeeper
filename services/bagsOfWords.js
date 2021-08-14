@@ -81,6 +81,27 @@ const updateBags = async (
   return result;
 };
 
+const getBagsCollocatesToUpdate = (bag, byBag, lastEdited) => {
+  let collocates = bag.analyses.collocates;
+  const analyses = byBag[bag._id.toString()];
+  const result = {};
+  if (collocates === undefined) {
+    return analyses;
+  }
+  for (title in analyses) {
+    if (
+      collocates[title] === undefined ||
+      lastEdited >=
+        Date.parse(
+          collocates[title].runs[collocates[title].runs.length - 1].timestamp
+        )
+    ) {
+      result[title] = analyses[title];
+    }
+  }
+  return result;
+};
+
 const updateBagsAnalyses = (bagsArray, names, byBag) => {
   const updatedBagMap = {};
   bagsArray.forEach(({ _id, analyses, updated, created }) => {
@@ -89,9 +110,17 @@ const updateBagsAnalyses = (bagsArray, names, byBag) => {
     const namesArray = [];
     const analysesArray = [];
     names.forEach((name, index) => {
-      if (
+      if (name === "collocates") {
+        const collocs = getBagsCollocatesToUpdate(
+          { _id, analyses },
+          byBag[index],
+          lastEdited
+        );
+        namesArray.push(name);
+        analysesArray.push(collocs);
+      } else if (
         analyses[name] === undefined ||
-        lastEdited >
+        lastEdited >=
           Date.parse(
             analyses[name].runs[analyses[name].runs.length - 1].timestamp
           )

@@ -63,11 +63,19 @@ const postBagsOfWords = async (req, res) => {
     const updatedBagsTables = corporaArray.map((corpus) =>
       addBagsToCorpus(corpus, bagArray)
     );
+    const corporaBags = await Promise.all(
+      updatedBagsTables.map(async (corpus) => {
+        const res = await getBagsByID(corpus.bags, db);
+        return res;
+      })
+    );
     const analysesToRun = corporaArray.map((corpus) =>
       getWatchedAnalyses(corpus)
     );
     const analysesResults = analysesToRun.map((analyses, index) =>
-      analyses.functs.map((analysis) => analysis(updatedBagsTables[index]))
+      analyses.functs.map((analysis) =>
+        analysis(updatedBagsTables[index], corporaBags[index])
+      )
     );
     const namesArrays = analysesToRun.map((analyses) => analyses.names);
     const updatedCorpora = updateWatchedAnalyses(
@@ -132,12 +140,54 @@ const putBagOfWords = async (req, res) => {
     const updatedAddBagsTables = addCorpora.map((corpus) =>
       addBagsToCorpus(corpus, [{ _id: oldBag._id, table }])
     );
+    // Update bags and tables of removed corpora
+    const inverseTable = createInverseTable(oldBag.table);
+    const updatedRemBagsTables = removeCorpora.map((corpus) =>
+      removeBagsFromCorpus(corpus, [bagID], [inverseTable])
+    );
+    // Update tables of updated corpora
+    const deltaTable = createDeltaTable(oldBag.table, tableDeepCopy);
+    const updatedUpdTables = updateCorp.map((corpus) => {
+      const updatedTable = updateCorpusTable(corpus.table, deltaTable, bagID);
+      return { table: updatedTable, bags: corpus.bags };
+    });
+    // Get bags of corpora to update collocate analyses
+    const [addCorpBags, remCorpBags, updCorpBags] = await Promise.all([
+      Promise.all(
+        updatedAddBagsTables.map(async (corpus) => {
+          const res = await getBagsByID(corpus.bags, db);
+          res[res.findIndex((bag) => bag._id.toString() === bagID)] = {
+            ...updatedBagText,
+            _id: bagID,
+          };
+          return res;
+        })
+      ),
+      Promise.all(
+        updatedRemBagsTables.map(async (corpus) => {
+          const res = await getBagsByID(corpus.bags, db);
+          return res;
+        })
+      ),
+      Promise.all(
+        updatedUpdTables.map(async (corpus) => {
+          const res = await getBagsByID(corpus.bags, db);
+          res[res.findIndex((bag) => bag._id.toString() === bagID)] = {
+            ...updatedBagText,
+            _id: bagID,
+          };
+          return res;
+        })
+      ),
+    ]);
     // Running watched analyses of added corpora
     const addAnalysesToRun = addCorpora.map((corpus) =>
       getWatchedAnalyses(corpus)
     );
     const addAnalysesResults = addAnalysesToRun.map((analyses, index) =>
-      analyses.functs.map((analysis) => analysis(updatedAddBagsTables[index]))
+      analyses.functs.map((analysis) =>
+        analysis(updatedAddBagsTables[index], addCorpBags[index])
+      )
     );
     const addNamesArrays = addAnalysesToRun.map((analyses) => analyses.names);
     const updatedAddCorpora = updateWatchedAnalyses(
@@ -146,18 +196,15 @@ const putBagOfWords = async (req, res) => {
       addNamesArrays,
       addAnalysesResults
     );
-    // Update bags and tables of removed corpora
-    const inverseTable = createInverseTable(oldBag.table);
-    const updatedRemBagsTables = removeCorpora.map((corpus) =>
-      removeBagsFromCorpus(corpus, [bagID], [inverseTable])
-    );
     // Running watched analyses of removed corpora
     const remAnalysesToRun = removeCorpora.map((corpus) =>
       getWatchedAnalyses(corpus)
     );
     const remNamesArrays = remAnalysesToRun.map((analyses) => analyses.names);
     const remAnalysesResults = remAnalysesToRun.map((analyses, index) =>
-      analyses.functs.map((analysis) => analysis(updatedRemBagsTables[index]))
+      analyses.functs.map((analysis) =>
+        analysis(updatedRemBagsTables[index], remCorpBags[index])
+      )
     );
     const updatedRemCorpora = updateWatchedAnalyses(
       removeCorpora,
@@ -165,18 +212,14 @@ const putBagOfWords = async (req, res) => {
       remNamesArrays,
       remAnalysesResults
     );
-    // Update tables of updated corpora
-    const deltaTable = createDeltaTable(oldBag.table, tableDeepCopy);
-    const updatedUpdTables = updateCorp.map((corpus) => {
-      const updatedTable = updateCorpusTable(corpus.table, deltaTable, bagID);
-      return { table: updatedTable };
-    });
     // Running watched analyses of updated corpora
     const updAnalysesToRun = updateCorp.map((corpus) =>
       getWatchedAnalyses(corpus)
     );
     const updAnalysesResults = updAnalysesToRun.map((analyses, index) =>
-      analyses.functs.map((analysis) => analysis(updatedUpdTables[index]))
+      analyses.functs.map((analysis) =>
+        analysis(updatedUpdTables[index], updCorpBags[index])
+      )
     );
     const updNamesArrays = updAnalysesToRun.map((analyses) => analyses.names);
     const updatedUpdCorpora = updateWatchedAnalyses(
@@ -226,11 +269,19 @@ const deleteBagOfWords = async (req, res) => {
     const updatedBagsTables = corporaArray.map((corpus) =>
       removeBagsFromCorpus(corpus, [bagID], [inverseTable])
     );
+    const corporaBags = await Promise.all(
+      updatedBagsTables.map(async (corpus) => {
+        const res = await getBagsByID(corpus.bags, db);
+        return res;
+      })
+    );
     const analysesToRun = corporaArray.map((corpus) =>
       getWatchedAnalyses(corpus)
     );
     const analysesResults = analysesToRun.map((analyses, index) =>
-      analyses.functs.map((analysis) => analysis(updatedBagsTables[index]))
+      analyses.functs.map((analysis) =>
+        analysis(updatedBagsTables[index], corporaBags[index])
+      )
     );
     const namesArrays = analysesToRun.map((analyses) => analyses.names);
     const updatedCorpora = updateWatchedAnalyses(
@@ -262,15 +313,27 @@ const updateText = async (req, res) => {
       const corporaArray = await getCorporaByID(oldBag.corpora, db);
       const updatedBagsTables = corporaArray.map((corpus) => {
         const table = updateCorpusTable(corpus.table, deltaTable, bagID);
-        return { table };
+        return { table, bags: corpus.bags };
       });
       const updatedBagText = { textString, tokens, table };
+      const corporaBags = await Promise.all(
+        updatedBagsTables.map(async (corpus) => {
+          const res = await getBagsByID(corpus.bags, db);
+          res[res.findIndex((bag) => bag._id.toString() === bagID)] = {
+            ...updatedBagText,
+            _id: bagID,
+          };
+          return res;
+        })
+      );
       // Running watched analyses of updated corpora
       const analysesToRun = corporaArray.map((corpus) =>
         getWatchedAnalyses(corpus)
       );
       const analysesResults = analysesToRun.map((analyses, index) =>
-        analyses.functs.map((analysis) => analysis(updatedBagsTables[index]))
+        analyses.functs.map((analysis) =>
+          analysis(updatedBagsTables[index], corporaBags[index])
+        )
       );
       const namesArrays = analysesToRun.map((analyses) => analyses.names);
       const updatedCorpora = updateWatchedAnalyses(
@@ -326,13 +389,21 @@ const addCorpora = async (req, res) => {
     const updatedBagsTables = corporaArray.map((corpus) =>
       addBagsToCorpus(corpus, bagArray)
     );
+    const corporaBags = await Promise.all(
+      updatedBagsTables.map(async (corpus) => {
+        const res = await getBagsByID(corpus.bags, db);
+        return res;
+      })
+    );
     const updatedBagCorpora = addCorporaToBag(bagArray[0], corporaArray);
     // Running watched analyses of added corpora
     const analysesToRun = corporaArray.map((corpus) =>
       getWatchedAnalyses(corpus)
     );
     const analysesResults = analysesToRun.map((analyses, index) =>
-      analyses.functs.map((analysis) => analysis(updatedBagsTables[index]))
+      analyses.functs.map((analysis) =>
+        analysis(updatedBagsTables[index], corporaBags[index])
+      )
     );
     const namesArrays = analysesToRun.map((analyses) => analyses.names);
     const updatedCorpora = updateWatchedAnalyses(
@@ -374,13 +445,21 @@ const removeCorpora = async (req, res) => {
     const updatedBagsTables = corporaArray.map((corpus) =>
       removeBagsFromCorpus(corpus, [bagID], [inverseTable])
     );
+    const corporaBags = await Promise.all(
+      updatedBagsTables.map(async (corpus) => {
+        const res = await getBagsByID(corpus.bags, db);
+        return res;
+      })
+    );
     // Running watched analyses of removed corpora
     const analysesToRun = corporaArray.map((corpus) =>
       getWatchedAnalyses(corpus)
     );
     const namesArrays = analysesToRun.map((analyses) => analyses.names);
     const analysesResults = analysesToRun.map((analyses, index) =>
-      analyses.functs.map((analysis) => analysis(updatedBagsTables[index]))
+      analyses.functs.map((analysis) =>
+        analysis(updatedBagsTables[index], corporaBags[index])
+      )
     );
     const updatedCorpora = updateWatchedAnalyses(
       corporaArray,
@@ -417,13 +496,30 @@ const putCorpora = async (req, res) => {
       removeBagsFromCorpus(corpus, [bagID], [inverseTable])
     );
     const updatedBagCorpora = { corpora: corporaOIDs };
+    // Get bags of corpora to update collocate analyses
+    const [addCorpBags, remCorpBags] = await Promise.all([
+      Promise.all(
+        updatedAddBagsTables.map(async (corpus) => {
+          const res = await getBagsByID(corpus.bags, db);
+          return res;
+        })
+      ),
+      Promise.all(
+        updatedRemBagsTables.map(async (corpus) => {
+          const res = await getBagsByID(corpus.bags, db);
+          return res;
+        })
+      ),
+    ]);
     // Running watched analyses of removed corproa
     const remAnalysesToRun = removeCorpora.map((corpus) =>
       getWatchedAnalyses(corpus)
     );
     const remNamesArrays = remAnalysesToRun.map((analyses) => analyses.names);
     const remAnalysesResults = remAnalysesToRun.map((analyses, index) =>
-      analyses.functs.map((analysis) => analysis(updatedRemBagsTables[index]))
+      analyses.functs.map((analysis) =>
+        analysis(updatedRemBagsTables[index], remCorpBags[index])
+      )
     );
     const updatedRemCorpora = updateWatchedAnalyses(
       removeCorpora,
@@ -436,7 +532,9 @@ const putCorpora = async (req, res) => {
       getWatchedAnalyses(corpus)
     );
     const addAnalysesResults = addAnalysesToRun.map((analyses, index) =>
-      analyses.functs.map((analysis) => analysis(updatedAddBagsTables[index]))
+      analyses.functs.map((analysis) =>
+        analysis(updatedAddBagsTables[index], addCorpBags[index])
+      )
     );
     const addNamesArrays = addAnalysesToRun.map((analyses) => analyses.names);
 

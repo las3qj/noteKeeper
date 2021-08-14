@@ -155,6 +155,12 @@ const analyze = async (corpusID, name, watchForUpdates) => {
     corpusID,
     name,
     watchForUpdates,
+    params: {
+      title: "Testcolloc",
+      terms: ["god", "life"],
+      stopWords: ["and", "the", "a", "of"],
+      range: 4,
+    },
   });
   return response;
 };
